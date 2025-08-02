@@ -1,0 +1,2508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HireMind | Asistente de Carrera con IA</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- PDF.js for client-side PDF processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js`;
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            line-height: 1.6;
+            color: #333;
+        }
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        #main-content {
+            transition: margin-left 0.3s ease-in-out;
+        }
+        @media (min-width: 1024px) {
+            #sidebar {
+                transform: translateX(0);
+            }
+            #main-content {
+                margin-left: 16rem;
+            }
+        }
+        .app-section, #app-container, #auth-page {
+            display: none;
+        }
+        /* Landing page will be flex by default for initial load */
+        #landing-page {
+             display: flex;
+        }
+        .nav-link.active {
+            background-color: #e0f2fe;
+            color: #16a34a;
+            font-weight: 600;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #16a34a;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Styles for CV HTML generation - Simplified for Word compatibility */
+        .cv-body { 
+            font-family: 'Arial', sans-serif; 
+            line-height: 1.4; 
+            color: #333; 
+            font-size: 10.5pt; 
+            margin: 0; 
+            padding: 0;
+            width: 100%; /* Ensure it takes full width */
+            box-sizing: border-box; /* Include padding/border in width */
+        }
+        .cv-header { 
+            text-align: center; 
+            margin-bottom: 12px; 
+            padding-bottom: 2px; 
+            border-bottom: 1px solid #333; 
+        }
+        .cv-name { 
+            font-size: 14pt; 
+            font-weight: bold; 
+            margin-bottom: 2px; 
+            text-transform: uppercase; 
+            display: block; /* Ensure it's a block element */
+        }
+        .cv-contact { 
+            font-size: 9.8pt; 
+            margin: 4px 0; 
+            display: block; /* Ensure it's a block element */
+        }
+        .cv-section { 
+            margin-bottom: 10px; 
+            page-break-inside: avoid; /* Avoid breaking sections across pages */
+        }
+        .cv-section-title { 
+            font-size: 11.5pt; 
+            font-weight: bold; 
+            margin: 10px 0 2px 0; 
+            padding: 0 0 3px 5px; 
+            border-bottom: 1.5px solid #ddd; 
+            display: block; /* Ensure it's a block element */
+        }
+        .cv-sub-section { 
+            margin-bottom: 2px; 
+            page-break-inside: avoid; /* Avoid breaking sub-sections across pages */
+        }
+        .cv-company { 
+            font-weight: bold; 
+            display: inline; 
+        }
+        .cv-date { 
+            font-style: italic; 
+            font-size: 9.8pt; 
+            display: inline; 
+            margin-left: 10px; 
+        }
+        .cv-bullet-list { 
+            margin: 6px 0 2px 25px; 
+            padding: 0; 
+            list-style-type: disc; 
+        }
+        .cv-no-bullet-list { 
+            margin: 6px 0 2px 25px; 
+            padding: 0; 
+            list-style-type: none; 
+        }
+        .cv-bullet-item { 
+            margin: 4px 0; 
+            padding: 0; 
+            font-size: 10.2pt; 
+        }
+        .cv-education-item { 
+            margin-bottom: 7px; 
+            page-break-inside: avoid;
+        }
+        .cv-education-title { 
+            font-weight: bold; 
+            display: inline; 
+        }
+        .cv-education-institution { 
+            display: inline; 
+            margin-left: 8px; 
+        }
+        .cv-education-date { 
+            font-style: italic; 
+            font-size: 9.8pt; 
+            display: inline; 
+            margin-left: 10px; 
+        }
+        .cv-profile-text { 
+            padding: 0 5px; 
+            text-align: justify; 
+            display: block; /* Ensure it's a block element */
+        }
+
+        /* Styles for the new landing page */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        .section-padding {
+            padding: 4rem 0;
+        }
+        /* Primary landing button is now green */
+        .btn-primary-landing {
+                background-color: #16a34a; /* bg-green-600 */
+                color: #fff; /* text-white */
+                font-weight: bold; /* font-bold */
+                padding-top: 0.75rem; /* py-3 */
+                padding-bottom: 0.75rem;
+                padding-left: 2rem; /* px-8 */
+                padding-right: 2rem;
+                border-radius: 0.5rem; /* rounded-lg */
+                font-size: 1.125rem; /* text-lg */
+                box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px 0 rgb(0 0 0 / 0.06); /* shadow-lg */
+                transition: background-color 0.3s, transform 0.3s;
+            }
+            .btn-primary-landing:hover {
+                background-color: #15803d; /* hover:bg-green-700 */
+                transform: scale(1.05); /* hover:scale-105 */
+        }
+        /* Secondary landing button remains green */
+        .btn-secondary-landing {
+            background-color: #16a34a; /* bg-green-600 */
+            color: #fff; /* text-white */
+            font-weight: bold; /* font-bold */
+            padding-top: 0.75rem; /* py-3 */
+            padding-bottom: 0.75rem;
+            padding-left: 2rem; /* px-8 */
+            padding-right: 2rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            font-size: 1.125rem; /* text-lg */
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px 0 rgb(0 0 0 / 0.06); /* shadow-lg */
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .btn-secondary-landing:hover {
+            background-color: #15803d; /* hover:bg-green-700 */
+            transform: scale(1.05); /* hover:scale-105 */
+        }
+        .feature-icon-landing {
+            color: #16a34a; /* text-blue-500 */
+            font-size: 2.25rem; /* text-4xl */
+            margin-bottom: 1rem; /* mb-4 */
+            transition-property: color;
+            transition-duration: 0.3s; /* duration-300 */
+        }
+        .card-hover-effect {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(1);
+        }
+        .card-hover-effect:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px 0 rgba(59, 130, 246, 0.15), 0 4px 6px 0 rgba(0,0,0,0.06);
+        }
+        .animate-fade-in {
+            animation: fadeIn 1s ease-out forwards;
+            opacity: 0;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.8s ease-out forwards;
+            opacity: 0;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Added hover effect for navigation links on landing page */
+        .landing-nav-link:hover {
+            color: #15803d; /* Tailwind text-blue-700 */
+            transform: scale(1.05);
+        }
+        /* Specific animations for sections on load */
+        #landing-page .hero-section { animation-delay: 0.1s; }
+        #landing-page .how-it-works-section .card { animation-delay: 0.3s; }
+        #landing-page .benefits-section .card { animation-delay: 0.5s; }
+        #landing-page .testimonials-section .card { animation-delay: 0.7s; }
+        #landing-page .cta-section { animation-delay: 0.9s; }
+
+    </style>
+</head>
+<body class="bg-gray-50 antialiased">
+
+    <!-- Landing Page (Shown when not logged in) -->
+    <div id="landing-page" class="min-h-screen flex flex-col items-center justify-center">
+        <!-- Header / Navigation (Simple) for Landing Page -->
+        <header class="bg-white shadow-lg py-4 w-full fixed top-0 left-0 z-40">
+            <div class="container flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-brain text-3xl text-green-600"></i>
+                    <h1 class="text-2xl font-bold text-gray-800 ml-3">HireMind</h1>
+                </div>
+                <nav class="hidden md:block">
+                    <a href="#como-funciona-landing" class="landing-nav-link text-gray-600 hover:text-blue-700 mx-3 font-medium transition-colors duration-200">Cómo Funciona</a>
+                    <a href="#beneficios-landing" class="landing-nav-link text-gray-600 hover:text-blue-700 mx-3 font-medium transition-colors duration-200">Beneficios</a>
+                    <a href="#contacto-landing" class="landing-nav-link text-gray-600 hover:text-blue-700 mx-3 font-medium transition-colors duration-200">Contacto</a>
+                    <button id="landing-login-register-btn" class="ml-4 btn-primary-landing">Iniciar Sesión / Registrarse</button>
+                </nav>
+                <button id="landing-mobile-menu-toggle" class="md:hidden text-gray-600 text-2xl focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <!-- Mobile Menu Overlay -->
+            <div id="landing-mobile-menu" class="fixed inset-0 bg-white bg-opacity-95 z-50 flex flex-col items-center justify-center hidden md:hidden">
+                <button id="landing-mobile-menu-close" class="absolute top-4 right-4 text-gray-600 text-3xl focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+                <nav class="flex flex-col space-y-6 text-xl">
+                    <a href="#como-funciona-landing" class="text-gray-800 hover:text-blue-700 transition-colors duration-200" data-section-target="como-funciona-landing">Cómo Funciona</a>
+                    <a href="#beneficios-landing" class="text-gray-800 hover:text-blue-700 transition-colors duration-200" data-section-target="beneficios-landing">Beneficios</a>
+                    <a href="#contacto-landing" class="text-gray-800 hover:text-blue-700 transition-colors duration-200" data-section-target="contacto-landing">Contacto</a>
+                    <button id="landing-login-register-btn-mobile" class="btn-primary-landing mt-8">Iniciar Sesión / Registrarse</button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Sección Principal (Héroe) -->
+        <section class="hero-section bg-gradient-to-br from-blue-100 to-indigo-200 text-center py-24 md:py-40 w-full mt-16 animate-fade-in">
+            <div class="container">
+                <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight drop-shadow-md">
+                    Tu CV listo para el éxito: <span class="text-green-700">Supera los filtros ATS</span> con HireMind.
+                </h1>
+                <h2 class="text-xl md:text-2xl text-gray-800 mb-8 max-w-3xl mx-auto">
+                    Aprovecha la Inteligencia Artificial para optimizar tu currículum, alinear tu perfil con las mejores vacantes y destacarte ante los reclutadores.
+                </h2>
+                <p class="text-lg text-gray-700 mb-10 max-w-2xl mx-auto">
+                    HireMind elimina la frustración de la búsqueda de empleo, transformando tu currículum para que hable el idioma de las empresas y maximice tus posibilidades de ser contactado.
+                </p>
+                <button id="landing-optimize-cv-btn" class="btn-primary-landing inline-block">Optimiza tu CV Ahora</button>
+
+                <!-- New: Message and button for logged-in users on landing page -->
+                <div id="landing-logged-in-message" class="hidden mt-8">
+                    <p class="text-xl text-gray-800 mb-4" data-i18n="loggedInWelcome">Bienvenido de nuevo, <span id="logged-in-user-email" class="font-semibold"></span>!</p>
+                    <button id="landing-go-to-dashboard-btn" class="btn-primary-landing" data-i18n="goToDashboardButton">Ir al Panel de Control</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección "Cómo Funciona" -->
+        <section id="como-funciona-landing" class="section-padding bg-white w-full">
+            <div class="container">
+                <h3 class="text-4xl font-bold text-center text-gray-800 mb-12 animate-slide-up">¿Cómo HireMind te ayuda a conseguir tu próximo empleo?</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-10 text-center">
+                    <div class="card p-6 rounded-xl shadow-lg bg-gray-50 card-hover-effect animate-slide-up" style="animation-delay: 0.2s;">
+                        <div class="feature-icon-landing"><i class="fas fa-upload"></i></div>
+                        <h4 class="text-2xl font-semibold text-gray-800 mb-3">1. Sube tu información</h4>
+                        <p class="text-gray-700">Carga tu CV actual o tu historial laboral completo (incluso desde PDFs). Nuestra IA lo procesará.</p>
+                    </div>
+                    <div class="card p-6 rounded-xl shadow-lg bg-gray-50 card-hover-effect animate-slide-up" style="animation-delay: 0.4s;">
+                        <div class="feature-icon-landing"><i class="fas fa-bullseye"></i></div>
+                        <h4 class="text-2xl font-semibold text-gray-800 mb-3">2. Define tu objetivo</h4>
+                        <p class="text-gray-700">Comparte la descripción de la vacante de tu interés. ¡Sé específico para mejores resultados!</p>
+                    </div>
+                    <div class="card p-6 rounded-xl shadow-lg bg-gray-50 card-hover-effect animate-slide-up" style="animation-delay: 0.6s;">
+                        <div class="feature-icon-landing"><i class="fas fa-rocket"></i></div>
+                        <h4 class="text-2xl font-semibold text-gray-800 mb-3">3. Recibe tu CV optimizado y plan</h4>
+                        <p class="text-gray-700">Obtén un CV adaptado a la oferta y recomendaciones personalizadas para destacar. ¡Todo en segundos!</p>
+                    </div>
+                </div>
+                <p class="text-center text-gray-700 mt-12 text-lg italic animate-slide-up" style="animation-delay: 0.8s;">
+                    La Inteligencia Artificial de HireMind procesa tus datos con una rapidez asombrosa, dándote una ventaja competitiva.
+                </p>
+            </div>
+        </section>
+
+        <!-- Sección "Beneficios Clave" -->
+        <section id="beneficios-landing" class="section-padding bg-gray-100 w-full">
+            <div class="container">
+                <h3 class="text-4xl font-bold text-center text-gray-800 mb-12 animate-slide-up">Beneficios Clave de Usar HireMind</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="card bg-white p-6 rounded-xl shadow-md flex items-start card-hover-effect animate-slide-up" style="animation-delay: 0.2s;">
+                        <i class="fas fa-robot feature-icon-landing text-3xl mr-4 mt-1"></i>
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800 mb-2">Optimización ATS</h4>
+                            <p class="text-gray-700">Asegura que tu currículum sea legible por los sistemas de seguimiento de candidatos, evitando el descarte prematuro.</p>
+                        </div>
+                    </div>
+                    <div class="card bg-white p-6 rounded-xl shadow-md flex items-start card-hover-effect animate-slide-up" style="animation-delay: 0.3s;">
+                        <i class="fas fa-file-alt feature-icon-landing text-3xl mr-4 mt-1"></i>
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800 mb-2">CV Personalizado</h4>
+                            <p class="text-gray-700">Adapta tu currículum para cada oferta de trabajo, resaltando las habilidades y experiencia más relevantes.</p>
+                        </div>
+                    </div>
+                    <div class="card bg-white p-6 rounded-xl shadow-md flex items-start card-hover-effect animate-slide-up" style="animation-delay: 0.4s;">
+                        <i class="fas fa-key feature-icon-landing text-3xl mr-4 mt-1"></i>
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800 mb-2">Palabras Clave Esenciales</h4>
+                            <p class="text-gray-700">Incluye automáticamente las palabras clave que los reclutadores y la IA buscan en las descripciones de empleo.</p>
+                        </div>
+                    </div>
+                    <div class="card bg-white p-6 rounded-xl shadow-md flex items-start card-hover-effect animate-slide-up" style="animation-delay: 0.5s;">
+                        <i class="fas fa-chart-pie feature-icon-landing text-3xl mr-4 mt-1"></i>
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800 mb-2">Análisis de Compatibilidad</h4>
+                            <p class="text-gray-700">Recibe un porcentaje de compatibilidad con la vacante y un plan de acción para cerrar cualquier brecha.</p>
+                        </div>
+                    </div>
+                    <div class="card bg-white p-6 rounded-xl shadow-md flex items-start card-hover-effect animate-slide-up" style="animation-delay: 0.6s;">
+                        <i class="fas fa-clock feature-icon-landing text-3xl mr-4 mt-1"></i>
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800 mb-2">Ahorro de Tiempo</h4>
+                            <p class="text-gray-700">Deja que la IA haga el trabajo pesado de adaptación, permitiéndote concentrarte en tus habilidades y entrevistas.</p>
+                        </div>
+                    </div>
+                    <div class="card bg-white p-6 rounded-xl shadow-md flex items-start card-hover-effect animate-slide-up" style="animation-delay: 0.7s;">
+                        <i class="fas fa-lightbulb feature-icon-landing text-3xl mr-4 mt-1"></i>
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800 mb-2">Recomendaciones Inteligentes</h4>
+                            <p class="text-gray-700">Obtén sugerencias personalizadas para mejorar tu perfil y alcanzar tus metas profesionales.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección de Credibilidad (Testimonios Placeholder) -->
+        <section class="section-padding bg-white w-full">
+            <div class="container text-center">
+                <h3 class="text-4xl font-bold text-gray-800 mb-12 animate-slide-up">Lo que nuestros usuarios dicen</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="card bg-gray-50 p-6 rounded-xl shadow-lg italic text-gray-700 card-hover-effect animate-slide-up" style="animation-delay: 0.2s;">
+                        "Gracias a HireMind, conseguí un 30% más de entrevistas en el primer mes. ¡Es un cambio de juego!"
+                        <p class="mt-4 font-semibold text-gray-800">- Ana G., Desarrolladora Senior</p>
+                    </div>
+                    <div class="card bg-gray-50 p-6 rounded-xl shadow-lg italic text-gray-700 card-hover-effect animate-slide-up" style="animation-delay: 0.4s;">
+                        "La optimización de mi CV fue clave. Ahora sé exactamente qué buscan los reclutadores. ¡Altamente recomendado!"
+                        <p class="mt-4 font-semibold text-gray-800">- Carlos M., Gerente de Proyectos</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección Final / CTA Secundario -->
+        <section id="contacto-landing" class="cta-section bg-gradient-to-br from-blue-700 to-indigo-800 text-white text-center py-20 w-full animate-fade-in">
+            <div class="container">
+                <h3 class="text-4xl font-bold mb-6">No dejes tu carrera al azar.</h3>
+                <p class="text-xl mb-10 max-w-2xl mx-auto">
+                    Empieza a usar HireMind hoy mismo y toma el control de tu futuro profesional.
+                </p>
+                <button id="landing-start-free-btn" class="btn-secondary-landing inline-block">Empieza Gratis Ahora</button>
+                <div class="mt-12 text-lg">
+                    <p>¿Preguntas? Contáctanos:</p>
+                    <p class="mt-2">
+                        <i class="fas fa-envelope mr-2"></i> <a href="mailto:camilo.ortegonc@outlook.com" class="hover:underline">camilo.ortegonc@outlook.com</a>
+                    </p>
+                    <p class="mt-2">
+                        <i class="fab fa-linkedin mr-2"></i> <a href="https://www.linkedin.com/in/camiloandresortegon/" target="_blank" class="hover:underline">Camilo Andrés Ortegón (LinkedIn)</a>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer for Landing Page -->
+        <footer class="bg-gray-900 text-white py-6 text-center text-sm w-full">
+            <div class="container">
+                &copy; 2025 HireMind. Todos los derechos reservados.
+            </div>
+        </footer>
+    </div>
+
+    <!-- Auth Page (Login/Register Forms) -->
+    <div id="auth-page" class="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+        <div class="w-full max-w-md">
+            <!-- Login Form -->
+            <div id="login-form-container">
+                <form id="login-form" class="bg-white p-8 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center" data-i18n="loginFormTitle">Iniciar Sesión</h3>
+                    <div id="login-error" class="text-red-500 text-sm mb-4 hidden"></div>
+                    <div id="login-verification-needed" class="text-yellow-700 bg-yellow-100 border border-yellow-200 p-3 rounded-lg text-sm mb-4 hidden">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> <span data-i18n="verifyEmailPrompt">Por favor, verifica tu correo electrónico para iniciar sesión. Revisa tu bandeja de entrada.</span>
+                    </div>
+                    <div class="mb-4">
+                        <label for="login-email" class="block mb-2 text-sm font-medium text-gray-700" data-i18n="emailLabel">Email</label>
+                        <input type="email" id="login-email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="login-password" class="block mb-2 text-sm font-medium text-gray-700" data-i18n="passwordLabel">Contraseña</label>
+                        <input type="password" id="login-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" required>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 transform hover:scale-105" data-i18n="loginButtonSubmit">Entrar</button>
+                    <div class="text-sm text-center mt-4 flex justify-center items-center">
+                        <span data-i18n="noAccountText">¿No tienes cuenta?</span>
+                        <button type="button" id="switch-to-register-btn" class="text-blue-600 hover:underline font-semibold ml-1 py-1 px-2 rounded-md transition-colors duration-200" data-i18n="registerLink">Regístrate</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-form-container" class="hidden">
+                <form id="register-form" class="bg-white p-8 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center" data-i18n="registerFormTitle">Crear Cuenta</h3>
+                     <div id="register-error" class="text-red-500 text-sm mb-4 hidden"></div>
+                     <div id="register-success-verification" class="text-green-700 bg-green-100 border border-green-200 p-3 rounded-lg text-sm mb-4 hidden">
+                        <i class="fas fa-check-circle mr-2"></i> <span data-i18n="registrationSuccessVerifyEmail">¡Registro exitoso! Por favor, revisa tu correo electrónico para verificar tu cuenta y poder iniciar sesión.</span>
+                    </div>
+                    <div class="mb-4">
+                        <label for="register-email" class="block mb-2 text-sm font-medium text-gray-700" data-i18n="emailLabel">Email</label>
+                        <input type="email" id="register-email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 transition duration-200" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="register-password" class="block mb-2 text-sm font-medium text-gray-700" data-i18n="passwordLabel">Contraseña</label>
+                        <input type="password" id="register-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 transition duration-200" required>
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300 transform hover:scale-105" data-i18n="registerButtonSubmit">Registrarse</button>
+                    <div class="text-sm text-center mt-4 flex justify-center items-center">
+                        <span data-i18n="alreadyAccountText">¿Ya tienes cuenta?</span>
+                        <button type="button" id="switch-to-login-btn" class="text-blue-600 hover:underline font-semibold ml-1 py-1 px-2 rounded-md transition-colors duration-200" data-i18n="loginLink">Inicia Sesión</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Main App Container -->
+    <div id="app-container" class="flex h-screen bg-gray-100">
+        <!-- Sidebar -->
+        <div id="sidebar" class="fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-lg transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+            <div class="flex items-center justify-center h-20 border-b border-gray-200">
+                <i class="fas fa-brain text-3xl text-blue-600"></i>
+                <h1 class="text-2xl font-bold text-gray-800 ml-3">HireMind</h1>
+            </div>
+            <nav class="mt-6">
+                <a href="#" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-r-full transition-all duration-200" data-section="section-home" data-i18n="navHome">
+                    <i class="fas fa-home w-6"></i><span class="ml-4">Inicio</span>
+                </a>
+                <a href="#" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-r-full transition-all duration-200" data-section="section-load-cv" data-i18n="navLoadCV">
+                    <i class="fas fa-upload w-6"></i><span class="ml-4">Cargar Historia Laboral</span>
+                </a>
+                <a href="#" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-r-full transition-all duration-200" data-section="section-verify-offer" data-i18n="navVerifyOffer">
+                    <i class="fas fa-check-double w-6"></i><span class="ml-4">Verificar Oferta Laboral</span>
+                </a>
+                <a href="#" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-r-full transition-all duration-200" data-section="section-update-profile" data-i18n="navUpdateProfile">
+                    <i class="fas fa-edit w-6"></i><span class="ml-4">Actualizar Historia Laboral</span>
+                </a>
+                <a href="#" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-r-full transition-all duration-200" data-section="section-profile" data-i18n="navMyProfile">
+                    <i class="fas fa-user w-6"></i><span class="ml-4">Mi Perfil</span>
+                </a>
+                <a href="#" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-r-full transition-all duration-200" data-section="section-settings" data-i18n="navSettings">
+                    <i class="fas fa-cog w-6"></i><span class="ml-4">Ajustes</span>
+                </a>
+                 <a href="#" id="sign-out-btn" class="flex items-center px-6 py-3 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-r-full transition-all duration-200" data-i18n="navSignOut">
+                    <i class="fas fa-sign-out-alt w-6"></i><span class="ml-4">Cerrar Sesión</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content" class="flex-1 flex flex-col overflow-hidden lg:ml-64 transition-margin duration-300 ease-in-out">
+            <header class="flex items-center justify-between h-20 px-6 bg-white border-b shadow-sm">
+                <button id="sidebar-toggle" class="lg:hidden text-gray-600 focus:outline-none hover:text-blue-600 transition-colors duration-200">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+                <div class="text-center flex-grow">
+                    <h2 class="text-xl font-semibold text-gray-700" data-i18n="headerTitle">Asistente de Carrera con IA</h2>
+                    <p class="text-sm text-gray-500" data-i18n="headerSubtitle">Potenciado por IA Local Entrenada con 200000 registros</p>
+                </div>
+                <button id="language-toggle-btn" class="bg-blue-100 text-blue-700 font-bold py-2 px-4 rounded-lg hover:bg-blue-200 transition duration-300">
+                    <span data-i18n="languageToggleText">English</span>
+                </button>
+            </header>
+
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 md:p-8">
+                <!-- Section: Inicio (Dashboard) -->
+                <div id="section-home" class="app-section">
+                    <div class="bg-white p-8 rounded-xl shadow-lg mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4" data-i18n="homeWelcomeTitle">Bienvenido a HireMind</h3>
+                        <p class="text-gray-600 mb-6" data-i18n="homeWelcomeSubtitle">Aquí puedes ver un resumen de tu actividad y explorar nuevas oportunidades.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-xl font-semibold text-gray-800 mb-3" data-i18n="homeAnalysisHistoryTitle">Tu Historial de Análisis</h4>
+                                <div id="home-search-history" class="bg-gray-50 p-4 rounded-lg border border-gray-200 min-h-[150px] shadow-inner">
+                                    <p class="text-gray-500" data-i18n="loadingHistory">Cargando historial...</p>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-gray-800 mb-3" data-i18n="homeJobRecommendationsTitle">Empleos Recomendados</h4>
+                                <p class="text-gray-600 mb-4" data-i18n="homeJobRecommendationsSubtitle">Genera recomendaciones de empleo basadas en tu perfil actual.</p>
+                                <button id="generate-recommendations-btn" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition duration-300 transform hover:scale-105">
+                                    <i class="fas fa-lightbulb mr-2"></i><span data-i18n="generateRecommendationsButton">Generar Recomendaciones</span>
+                                </button>
+                                <div id="home-job-recommendations-result" class="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200 min-h-[150px] shadow-inner">
+                                    <p class="text-gray-500" data-i18n="clickToGetRecommendations">Haz clic en el botón para obtener recomendaciones.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Cargar Historia Laboral -->
+                <div id="section-load-cv" class="app-section">
+                    <div class="bg-white p-8 rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-1" data-i18n="loadCvTitle">Cargar Historia Laboral</h3>
+                        <p class="text-gray-600 mb-6" data-i18n="loadCvSubtitle">Sube tu CV en formato PDF. Nuestra IA lo analizará y estructurará tu perfil profesional.</p>
+                        <form id="form-load-cv">
+                            <label for="cv-file" class="block mb-2 text-sm font-medium text-gray-700" data-i18n="cvFileLabel">Archivo PDF de tu CV</label>
+                            <input type="file" id="cv-file" name="cv-file" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-200 p-2.5" accept=".pdf" required>
+                            <button type="submit" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 transform hover:scale-105">
+                                <i class="fas fa-cloud-upload-alt mr-2"></i><span data-i18n="loadCvButton">Cargar y Analizar</span>
+                            </button>
+                        </form>
+                        <div id="result-load-cv" class="mt-6 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Section: Verificar Oferta Laboral -->
+                <div id="section-verify-offer" class="app-section">
+                     <div class="bg-white p-8 rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-1" data-i18n="verifyOfferTitle">Verificar Oferta Laboral</h3>
+                        <p class="text-gray-600 mb-6" data-i18n="verifyOfferSubtitle">Pega la descripción de una vacante o sube una imagen para analizar tu compatibilidad y obtener un CV optimizado.</p>
+                        <form id="form-verify-offer">
+                            <label for="offer-text" class="block mb-2 text-sm font-medium text-gray-700" data-i18n="offerTextLabel">Descripción de la vacante (Texto)</label>
+                            <textarea id="offer-text" name="offer-text" rows="10" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" data-i18n-placeholder="offerTextPlaceholder" placeholder="Pega aquí el texto de la oferta de trabajo..."></textarea>
+
+                            <div class="mt-4 mb-2 text-sm font-medium text-gray-700" data-i18n="orUploadImage">O sube una imagen de la vacante:</div>
+                            <label for="offer-image" class="block mb-2 text-sm font-medium text-gray-700" data-i18n="offerImageLabel">Imagen de la vacante (JPG, PNG)</label>
+                            <input type="file" id="offer-image" name="offer-image" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-200 p-2.5" accept=".jpg,.jpeg,.png">
+
+                            <button type="submit" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 transform hover:scale-105">
+                                <i class="fas fa-search mr-2"></i><span data-i18n="analyzeCompatibilityButton">Analizar Compatibilidad</span>
+                            </button>
+                        </form>
+                        <div id="result-verify-offer" class="mt-6 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Section: Actualizar Historia Laboral -->
+                <div id="section-update-profile" class="app-section">
+                    <div class="bg-white p-8 rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-1" data-i18n="updateProfileTitle">Actualizar Historia Laboral</h3>
+                        <p class="text-gray-600 mb-6" data-i18n="updateProfileSubtitle">Añade nueva información a tu perfil, como un nuevo trabajo, curso o habilidad.</p>
+                        <form id="form-update-profile">
+                            <label for="update-text" class="block mb-2 text-sm font-medium text-gray-700" data-i18n="newInfoLabel">Nuevos datos</label>
+                            <textarea id="update-text" name="update-text" rows="10" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" data-i18n-placeholder="newInfoPlaceholder" placeholder="Ej: Nuevo puesto: Desarrollador Senior en Acme Inc. de Enero 2024 a la fecha. Lideré el proyecto X..." required></textarea>
+                            <button type="submit" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 transform hover:scale-105">
+                                <i class="fas fa-plus-circle mr-2"></i><span data-i18n="addProfileButton">Añadir a mi Perfil</span>
+                            </button>
+                        </form>
+                        <div id="result-update-profile" class="mt-6 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Section: Mi Perfil -->
+                <div id="section-profile" class="app-section">
+                    <div class="bg-white p-8 rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-1" data-i18n="myProfileTitle">Mi Perfil Profesional</h3>
+                        <p class="text-gray-600 mb-6" data-i18n="myProfileSubtitle">Aquí puedes ver los datos de tu historia laboral tal como los ha estructurado la IA.</p>
+                        <div id="profile-content">
+                            <!-- Profile data will be rendered here by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Ajustes -->
+                <div id="section-settings" class="app-section">
+                    <div class="bg-white p-8 rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-1" data-i18n="settingsTitle">Ajustes</h3>
+                        <p class="text-gray-600 mb-6" data-i18n="settingsSubtitle">Edita directamente el JSON de tu perfil. Ten cuidado, cambios incorrectos pueden afectar el funcionamiento.</p>
+                        <form id="form-settings">
+                            <label for="settings-json" class="block mb-2 text-sm font-medium text-gray-700" data-i18n="profileJsonLabel">Datos del Perfil (JSON)</label>
+                            <textarea id="settings-json" name="settings-json" rows="20" class="w-full p-3 border border-gray-300 rounded-lg font-mono text-sm focus:ring-blue-500 focus:border-blue-500 transition duration-200"></textarea>
+                            <button type="submit" class="mt-6 w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300 transform hover:scale-105">
+                                <i class="fas fa-save mr-2"></i><span data-i18n="saveChangesButton">Guardar Cambios</span>
+                            </button>
+                        </form>
+                        <div id="result-settings" class="mt-6 hidden"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- CV Preview Modal -->
+    <div id="cv-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 hidden">
+        <div class="relative bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+             <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl z-10">
+                <i class="fas fa-times"></i>
+            </button>
+            <div id="cv-modal-content" class="p-4 sm:p-8">
+                <!-- CV HTML will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Message Modal -->
+    <div id="message-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4 hidden">
+        <div class="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full relative">
+            <h4 id="message-modal-title" class="text-xl font-bold text-gray-800 mb-4"></h4>
+            <p id="message-modal-content" class="text-gray-700 mb-6"></p>
+            <button id="message-modal-close-btn" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Cerrar</button>
+        </div>
+    </div>
+
+
+    <!-- Firebase and App Logic -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword,
+            signOut,
+            sendEmailVerification // Import sendEmailVerification
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIGURATION ---
+        // Firebase configuration hardcoded as requested
+        const firebaseConfig = {
+            apiKey: "AIzaSyAN5cJPoHqB5B6VP4_KPyzxxQG2Mf0olOo",
+            authDomain: "hiremind-c0ad0.firebaseapp.com",
+            projectId: "hiremind-c0ad0",
+            storageBucket: "hiremind-c0ad0.appspot.com",
+            messagingSenderId: "159784617269",
+            appId: "1:159784617269:web:9ba3b7befecbc26846b87c"
+        };
+        const appId = 'hiremind-c0ad0'; // Your internal app identifier, matching the projectId
+
+        // --- FIREBASE INITIALIZATION ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let userId = null;
+        let userProfile = null; // To hold user's profile data in memory
+        let profileUnsubscribe = null; // To detach the Firestore listener
+        let currentLanguage = 'es'; // Default language
+
+        // --- UI ELEMENTS ---
+        const landingPage = document.getElementById('landing-page');
+        const authPage = document.getElementById('auth-page');
+        const appContainer = document.getElementById('app-container');
+        
+        const loginFormContainer = document.getElementById('login-form-container');
+        const registerFormContainer = document.getElementById('register-form-container');
+        
+        // Buttons from the new integrated landing page
+        const landingLoginRegisterBtn = document.getElementById('landing-login-register-btn');
+        const landingOptimizeCvBtn = document.getElementById('landing-optimize-cv-btn');
+        const landingStartFreeBtn = document.getElementById('landing-start-free-btn'); // From the final CTA on landing page
+        const landingMobileMenuToggle = document.getElementById('landing-mobile-menu-toggle');
+        const landingMobileMenu = document.getElementById('landing-mobile-menu');
+        const landingMobileMenuClose = document.getElementById('landing-mobile-menu-close');
+        const landingLoginRegisterBtnMobile = document.getElementById('landing-login-register-btn-mobile');
+
+
+        // Changed from <a> to <button> and updated IDs
+        const switchToRegisterBtn = document.getElementById('switch-to-register-btn');
+        const switchToLoginBtn = document.getElementById('switch-to-login-btn');
+
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const languageToggleBtn = document.getElementById('language-toggle-btn');
+
+        // New elements for email verification messages
+        const loginVerificationNeeded = document.getElementById('login-verification-needed');
+        const registerSuccessVerification = document.getElementById('register-success-verification');
+
+        // Custom Message Modal elements
+        const messageModal = document.getElementById('message-modal');
+        const messageModalTitle = document.getElementById('message-modal-title');
+        const messageModalContent = document.getElementById('message-modal-content');
+        const messageModalCloseBtn = document.getElementById('message-modal-close-btn');
+
+
+        // --- LANGUAGE DATA ---
+        const languageData = {
+            es: {
+                welcomeTitle: "Bienvenido a HireMind",
+                welcomeSubtitle: "Tu asistente de carrera personal con IA. Analiza ofertas de trabajo, optimiza tu CV y prepárate para el éxito.",
+                loginButton: "Iniciar Sesión",
+                registerButton: "Registrarse",
+                loginFormTitle: "Iniciar Sesión",
+                emailLabel: "Email",
+                passwordLabel: "Contraseña",
+                loginButtonSubmit: "Entrar",
+                noAccountText: "¿No tienes cuenta?",
+                registerLink: "Regístrate", // This key is now used for button text
+                registerFormTitle: "Crear Cuenta",
+                registerButtonSubmit: "Registrarse",
+                alreadyAccountText: "¿Ya tienes cuenta?",
+                loginLink: "Inicia Sesión", // This key is now used for button text
+                navHome: "Inicio",
+                navLoadCV: "Cargar Historia Laboral",
+                navVerifyOffer: "Verificar Oferta Laboral",
+                navUpdateProfile: "Actualizar Historia Laboral",
+                navMyProfile: "Mi Perfil",
+                navSettings: "Ajustes",
+                navSignOut: "Cerrar Sesión",
+                headerTitle: "Asistente de Carrera con IA",
+                headerSubtitle: "Potenciado por Google Gemini",
+                languageToggleText: "English",
+                homeWelcomeTitle: "Bienvenido a HireMind",
+                homeWelcomeSubtitle: "Aquí puedes ver un resumen de tu actividad y explorar nuevas oportunidades.",
+                homeAnalysisHistoryTitle: "Tu Historial de Análisis",
+                loadingHistory: "Cargando historial...",
+                homeJobRecommendationsTitle: "Empleos Recomendados",
+                homeJobRecommendationsSubtitle: "Genera recomendaciones de empleo basadas en tu perfil actual.",
+                generateRecommendationsButton: "Generar Recomendaciones",
+                clickToGetRecommendations: "Haz clic en el botón para obtener recomendaciones.",
+                loadCvTitle: "Cargar Historia Laboral",
+                loadCvSubtitle: "Sube tu CV en formato PDF. Nuestra IA lo analizará y estructurará tu perfil profesional.",
+                cvFileLabel: "Archivo PDF de tu CV",
+                loadCvButton: "Cargar y Analizar",
+                verifyOfferTitle: "Verificar Oferta Laboral",
+                verifyOfferSubtitle: "Pega la descripción de una vacante o sube una imagen para analizar tu compatibilidad y obtener un CV optimizado.",
+                offerTextLabel: "Descripción de la vacante (Texto)",
+                offerTextPlaceholder: "Pega aquí el texto de la oferta de trabajo...",
+                orUploadImage: "O sube una imagen de la vacante:",
+                offerImageLabel: "Imagen de la vacante (JPG, PNG)",
+                analyzeCompatibilityButton: "Analizar Compatibilidad",
+                updateProfileTitle: "Actualizar Historia Laboral",
+                updateProfileSubtitle: "Añade nueva información a tu perfil, como un nuevo trabajo, curso o habilidad.",
+                newInfoLabel: "Nuevos datos",
+                newInfoPlaceholder: "Ej: Nuevo puesto: Desarrollador Senior en Acme Inc. de Enero 2024 a la fecha. Lideré el proyecto X...",
+                addProfileButton: "Añadir a mi Perfil",
+                myProfileTitle: "Mi Perfil Profesional",
+                myProfileSubtitle: "Aquí puedes ver los datos de tu historia laboral tal como los ha estructurado la IA.",
+                settingsTitle: "Ajustes",
+                settingsSubtitle: "Edita directamente el JSON de tu perfil. Ten cuidado, cambios incorrectos pueden afectar el funcionamiento.",
+                profileJsonLabel: "Datos del Perfil (JSON)",
+                saveChangesButton: "Guardar Cambios",
+                // Messages
+                mustLoginCV: "Debes iniciar sesión para cargar tu CV.",
+                selectPdfFile: "Por favor, selecciona un archivo PDF.",
+                cvOperationTimeout: "Operación de CV ha excedido el tiempo límite (2 minutos). Por favor, intenta con un archivo más pequeño o revisa tu conexión.",
+                errorReadingPdf: "Error al leer el archivo PDF.",
+                errorAiCvAnalysis: "Error de la IA al analizar tu CV:",
+                errorFirebasePermissions: "Hubo un error de permisos al guardar tu CV. Asegúrate de haber iniciado sesión y de que las reglas de seguridad de tu base de datos Firebase permitan la escritura para tu usuario.",
+                cvLoadedSuccess: "<b>¡Historia laboral cargada con éxito!</b><br><br>",
+                mustLoadProfile: "Primero debes cargar tu historia laboral.",
+                enterUpdateInfo: "Por favor, ingresa la información para actualizar.",
+                profileUpdatedSuccess: "¡Tu perfil ha sido actualizado con éxito!",
+                invalidJsonSaveError: "JSON inválido o error al guardar:",
+                settingsSavedSuccess: "¡Ajustes guardados correctamente!",
+                noRecentAnalysis: "No tienes análisis recientes.",
+                errorLoadingHistory: "Error al cargar historial.",
+                loadProfileForRecommendations: "Carga tu perfil para obtener recomendaciones.",
+                generatingRecommendations: "Generando recomendaciones de empleo con IA...",
+                recommendationsGenerated: "Recomendaciones generadas:",
+                errorGeneratingRecommendations: "Error al generar recomendaciones:",
+                errorAnalyzingOffer: "Hubo un error al analizar la oferta:",
+                errorProcessingImage: "Error al procesar la imagen:",
+                pasteOfferOrUploadImage: "Por favor, pega la descripción de la oferta o sube una imagen.",
+                compatibility: "Compatibilidad:",
+                congratulationsCandidate: "¡Felicidades! Eres un buen candidato. Hemos generado una versión de tu CV optimizada para esta oferta.",
+                strongPoints: "Puntos Fuertes:",
+                interviewTips: "Consejos para la Entrevista:",
+                viewOptimizedCV: "Ver CV Optimizado",
+                downloadCvWord: "Descargar CV (Word)", // Changed from PDF
+                areasOfOpportunity: "Hemos identificado áreas de oportunidad. Aquí tienes un plan de acción:",
+                keySkill: "Habilidad clave:",
+                recommendedCertification: "Certificación recomendada:",
+                estimatedImprovementTime: "Tiempo estimado de mejora:",
+                viewSuggestedCV: "Ver CV Sugerido",
+                profileNotFound: "No se encontró un perfil para este idioma. Por favor, carga tu CV.",
+                vacantWithoutName: "Vacante sin nombre",
+                recommendedCourses: "Cursos Recomendados:",
+                suggestedVacanciesBasedOnProfile: "Vacantes Sugeridas (basadas en tu perfil actual):",
+                courseName: "Nombre del Curso",
+                courseEntity: "Entidad",
+                courseUrl: "URL",
+                role: "Rol",
+                briefDescription: "Descripción Breve",
+                portals: "Portales",
+                freeResources: "Recursos Gratuitos:",
+                profileSections: { // Added this section
+                    summary: "Resumen Profesional",
+                    experience: "Experiencia Laboral",
+                    education: "Educación",
+                    technicalSkills: "Habilidades Técnicas",
+                    certifications: "Certificaciones",
+                    achievements: "Logros",
+                    languages: "Idiomas"
+                },
+                loggedInWelcome: "Bienvenido de nuevo,",
+                goToDashboardButton: "Ir al Panel de Control",
+                errorLoadingProfile: "Error al cargar el perfil. Por favor, intenta de nuevo.", // Added
+                mustLoginHistory: "Debes iniciar sesión para ver tu historial de búsqueda.", // Added
+                // New error messages for registration
+                authInvalidEmail: "El formato del correo electrónico es inválido.",
+                authWeakPassword: "La contraseña debe tener al menos 6 caracteres.",
+                authEmailAlreadyInUse: "Este correo electrónico ya está registrado.",
+                authOperationNotAllowed: "La autenticación por correo y contraseña no está habilitada.",
+                authTooManyRequests: "Demasiados intentos fallidos. Inténtalo de nuevo más tarde.",
+                verifyEmailPrompt: "Por favor, verifica tu correo electrónico para iniciar sesión. Revisa tu bandeja de entrada.", // New
+                registrationSuccessVerifyEmail: "¡Registro exitoso! Por favor, revisa tu correo electrónico para verificar tu cuenta y poder iniciar sesión.", // New
+                pdfGenerationError: "Error al generar el PDF.", // New message for PDF error (kept for now, but not used for docx)
+                genericErrorTitle: "Error", // New generic title for messages
+                successTitle: "Éxito" // New generic title for success messages
+            },
+            en: {
+                welcomeTitle: "Welcome to HireMind",
+                welcomeSubtitle: "Your personal AI career assistant. Analyze job offers, optimize your CV, and prepare for success.",
+                loginButton: "Login",
+                registerButton: "Register",
+                loginFormTitle: "Login",
+                emailLabel: "Email",
+                passwordLabel: "Password",
+                loginButtonSubmit: "Enter",
+                noAccountText: "Don't have an account?",
+                registerLink: "Register", // This key is now used for button text
+                registerFormTitle: "Create Account",
+                registerButtonSubmit: "Register",
+                alreadyAccountText: "Already have an account?",
+                loginLink: "Login", // This key is now used for button text
+                navHome: "Home",
+                navLoadCV: "Upload Work History",
+                navVerifyOffer: "Verify Job Offer",
+                navUpdateProfile: "Update Work History",
+                navMyProfile: "My Profile",
+                navSettings: "Settings",
+                navSignOut: "Sign Out",
+                headerTitle: "AI Career Assistant",
+                headerSubtitle: "Powered by Google Gemini",
+                languageToggleText: "Español",
+                homeWelcomeTitle: "Welcome to HireMind",
+                homeWelcomeSubtitle: "Here you can see a summary of your activity and explore new opportunities.",
+                homeAnalysisHistoryTitle: "Your Analysis History",
+                loadingHistory: "Loading history...",
+                homeJobRecommendationsTitle: "Recommended Jobs",
+                homeJobRecommendationsSubtitle: "Generate job recommendations based on your current profile.",
+                generateRecommendationsButton: "Generate Recommendations",
+                clickToGetRecommendations: "Click the button to get recommendations.",
+                loadCvTitle: "Upload Work History",
+                loadCvSubtitle: "Upload your CV in PDF format. Our AI will analyze it and structure your professional profile.",
+                cvFileLabel: "Your CV PDF File",
+                loadCvButton: "Upload and Analyze",
+                verifyOfferTitle: "Verify Job Offer",
+                verifyOfferSubtitle: "Paste a job description or upload an image to analyze your compatibility and get an optimized CV.",
+                offerTextLabel: "Job Description (Text)",
+                offerTextPlaceholder: "Paste the job offer text here...",
+                orUploadImage: "Or upload an image of the job offer:",
+                offerImageLabel: "Job Offer Image (JPG, PNG)",
+                analyzeCompatibilityButton: "Analyze Compatibility",
+                updateProfileTitle: "Update Work History",
+                updateProfileSubtitle: "Add new information to your profile, such as a new job, course, or skill.",
+                newInfoLabel: "New Data",
+                newInfoPlaceholder: "Ex: New position: Senior Developer at Acme Inc. from January 2024 to date. Led project X...",
+                addProfileButton: "Add to My Profile",
+                myProfileTitle: "My Professional Profile",
+                myProfileSubtitle: "Here you can see your work history data as structured by the AI.",
+                settingsTitle: "Settings",
+                settingsSubtitle: "Directly edit your profile JSON. Be careful, incorrect changes can affect functionality.",
+                profileJsonLabel: "Profile Data (JSON)",
+                saveChangesButton: "Save Changes",
+                // Messages
+                mustLoginCV: "You must log in to upload your CV.",
+                selectPdfFile: "Please select a PDF file.",
+                cvOperationTimeout: "CV operation timed out (2 minutes). Please try with a smaller file or check your connection.",
+                errorReadingPdf: "Error reading PDF file.",
+                errorAiCvAnalysis: "AI error analyzing your CV:",
+                errorFirebasePermissions: "There was a permission error saving your CV. Make sure you are logged in and your Firebase database security rules allow writing for your user.",
+                cvLoadedSuccess: "<b>Work history successfully uploaded!</b><br><br>",
+                mustLoadProfile: "You must first upload your work history.",
+                enterUpdateInfo: "Please enter the information to update.",
+                profileUpdatedSuccess: "Your profile has been successfully updated!",
+                invalidJsonSaveError: "Invalid JSON or save error:",
+                settingsSavedSuccess: "Settings saved successfully!",
+                noRecentAnalysis: "You have no recent analyses.",
+                errorLoadingHistory: "Error loading history.",
+                loadProfileForRecommendations: "Load your profile to get recommendations.",
+                generatingRecommendations: "Generating job recommendations with AI...",
+                recommendationsGenerated: "Recommendations generated:",
+                errorGeneratingRecommendations: "Error generating recommendations:",
+                errorAnalyzingOffer: "There was an error analyzing the offer:",
+                errorProcessingImage: "Error processing image:",
+                pasteOfferOrUploadImage: "Please paste the offer description or upload an image.",
+                compatibility: "Compatibility:",
+                congratulationsCandidate: "Congratulations! You are a good candidate. We have generated an optimized version of your CV for this offer.",
+                strongPoints: "Strong Points:",
+                interviewTips: "Interview Tips:",
+                viewOptimizedCV: "View Optimized CV",
+                downloadCvWord: "Download CV (Word)", // Changed from PDF
+                areasOfOpportunity: "We have identified areas of opportunity. Here is an action plan:",
+                keySkill: "Key skill:",
+                recommendedCertification: "Recommended certification:",
+                estimatedImprovementTime: "Estimated improvement time:",
+                viewSuggestedCV: "View Suggested CV",
+                profileNotFound: "No profile found for this language. Please upload your CV.",
+                vacantWithoutName: "Vacant without name",
+                recommendedCourses: "Recommended Courses:",
+                suggestedVacanciesBasedOnProfile: "Suggested Vacancies (based on your current profile):",
+                courseName: "Course Name",
+                courseEntity: "Entity",
+                courseUrl: "URL",
+                role: "Role",
+                briefDescription: "Brief Description",
+                portals: "Portals",
+                freeResources: "Free Resources:",
+                profileSections: { // Added this section
+                    summary: "Professional Summary",
+                    experience: "Work Experience",
+                    education: "Education",
+                    technicalSkills: "Technical Skills",
+                    certifications: "Certifications",
+                    achievements: "Achievements",
+                    languages: "Languages"
+                },
+                loggedInWelcome: "Welcome back,",
+                goToDashboardButton: "Go to Dashboard",
+                errorLoadingProfile: "Error loading profile. Please try again.", // Added
+                mustLoginHistory: "You must log in to view your search history.", // Added
+                // New error messages for registration
+                authInvalidEmail: "The email address is invalid.",
+                authWeakPassword: "Password should be at least 6 characters.",
+                authEmailAlreadyInUse: "This email address is already registered.",
+                authOperationNotAllowed: "Email/password authentication is not enabled.",
+                authTooManyRequests: "Too many failed attempts. Try again later.",
+                verifyEmailPrompt: "Please verify your email to log in. Check your inbox.", // New
+                registrationSuccessVerifyEmail: "Registration successful! Please check your email to verify your account and log in.", // New
+                pdfGenerationError: "Error generating PDF.", // New message for PDF error (kept for now, but not used for docx)
+                genericErrorTitle: "Error", // New generic title for messages
+                successTitle: "Success" // New generic title for success messages
+            }
+        };
+
+        // --- AUTHENTICATION LOGIC ---
+        // Event listeners for landing page buttons to show auth forms
+        if (landingLoginRegisterBtn) {
+            landingLoginRegisterBtn.addEventListener('click', () => {
+                if (landingPage) landingPage.style.display = 'none';
+                if (authPage) authPage.style.display = 'flex';
+                if (loginFormContainer) loginFormContainer.classList.remove('hidden'); // Ensure login is visible
+                if (registerFormContainer) registerFormContainer.classList.add('hidden'); // Ensure register is hidden
+            });
+        }
+
+        if (landingOptimizeCvBtn) {
+            landingOptimizeCvBtn.addEventListener('click', () => {
+                if (landingPage) landingPage.style.display = 'none';
+                if (authPage) authPage.style.display = 'flex';
+                if (loginFormContainer) loginFormContainer.classList.remove('hidden'); // Default to login
+                if (registerFormContainer) registerFormContainer.classList.add('hidden');
+            });
+        }
+
+        if (landingStartFreeBtn) {
+            landingStartFreeBtn.addEventListener('click', () => {
+                if (landingPage) landingPage.style.display = 'none';
+                if (authPage) authPage.style.display = 'flex';
+                if (loginFormContainer) loginFormContainer.classList.remove('hidden'); // Default to login
+                if (registerFormContainer) registerFormContainer.classList.add('hidden');
+            });
+        }
+
+        // Mobile menu toggles
+        if (landingMobileMenuToggle) {
+            landingMobileMenuToggle.addEventListener('click', () => {
+                if (landingMobileMenu) landingMobileMenu.classList.remove('hidden');
+            });
+        }
+
+        if (landingMobileMenuClose) {
+            landingMobileMenuClose.addEventListener('click', () => {
+                if (landingMobileMenu) landingMobileMenu.classList.add('hidden');
+            });
+        }
+
+        if (landingLoginRegisterBtnMobile) {
+            landingLoginRegisterBtnMobile.addEventListener('click', () => {
+                if (landingMobileMenu) landingMobileMenu.classList.add('hidden');
+                if (landingPage) landingPage.style.display = 'none';
+                if (authPage) authPage.style.display = 'flex';
+                if (loginFormContainer) loginFormContainer.classList.remove('hidden');
+                if (registerFormContainer) registerFormContainer.classList.add('hidden');
+            });
+        }
+
+        // Close mobile menu when a navigation link is clicked
+        document.querySelectorAll('#landing-mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (landingMobileMenu) landingMobileMenu.classList.add('hidden');
+            });
+        });
+
+
+        // Original app's auth form switchers
+        // Updated to use the new button IDs
+        if (switchToRegisterBtn) {
+            switchToRegisterBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log("Switch to register button clicked!"); // Debugging log
+                if (loginFormContainer) loginFormContainer.classList.add('hidden');
+                if (registerFormContainer) registerFormContainer.classList.remove('hidden');
+                console.log("Login form hidden:", loginFormContainer ? loginFormContainer.classList.contains('hidden') : 'N/A');
+                console.log("Register form visible:", registerFormContainer ? registerFormContainer.classList.contains('hidden') : 'N/A');
+
+                // Clear any previous errors or success messages when switching forms
+                const registerErrorDiv = document.getElementById('register-error');
+                if (registerErrorDiv) {
+                    registerErrorDiv.classList.add('hidden');
+                    registerErrorDiv.textContent = '';
+                }
+                if (registerSuccessVerification) registerSuccessVerification.classList.add('hidden');
+                if (loginVerificationNeeded) loginVerificationNeeded.classList.add('hidden');
+            });
+        }
+
+        if (switchToLoginBtn) {
+            switchToLoginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log("Switch to login button clicked!"); // Debugging log
+                if (loginFormContainer) loginFormContainer.classList.remove('hidden');
+                if (registerFormContainer) registerFormContainer.classList.add('hidden');
+                console.log("Login form visible:", loginFormContainer ? loginFormContainer.classList.contains('hidden') : 'N/A');
+                console.log("Register form hidden:", registerFormContainer ? registerFormContainer.classList.contains('hidden') : 'N/A');
+
+                // Clear any previous errors or success messages when switching forms
+                const loginErrorDiv = document.getElementById('login-error');
+                if (loginErrorDiv) {
+                    loginErrorDiv.classList.add('hidden');
+                    loginErrorDiv.textContent = '';
+                }
+                if (registerSuccessVerification) registerSuccessVerification.classList.add('hidden');
+                if (loginVerificationNeeded) loginVerificationNeeded.classList.add('hidden');
+            });
+        }
+
+        if (registerForm) {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                const errorDiv = document.getElementById('register-error');
+                if (errorDiv) errorDiv.classList.add('hidden');
+                if (registerSuccessVerification) registerSuccessVerification.classList.add('hidden');
+
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    console.log("User registered:", user);
+
+                    // Send email verification
+                    await sendEmailVerification(user);
+                    console.log("Verification email sent to:", user.email);
+
+                    // Show success message and hide form
+                    if (registerFormContainer) registerFormContainer.classList.add('hidden');
+                    if (registerSuccessVerification) registerSuccessVerification.classList.remove('hidden');
+                    
+                    // Optionally, switch to login form after a delay or user interaction
+                    setTimeout(() => {
+                        if (loginFormContainer) loginFormContainer.classList.remove('hidden');
+                        if (registerSuccessVerification) registerSuccessVerification.classList.add('hidden'); // Hide success message after switching
+                    }, 5000); // Show login form after 5 seconds
+
+                } catch (error) {
+                    console.error("Registration error:", error);
+                    let errorMessage; // Declare errorMessage here
+                    switch (error.code) {
+                        case 'auth/invalid-email':
+                            errorMessage = languageData[currentLanguage].authInvalidEmail;
+                            break;
+                        case 'auth/weak-password':
+                            errorMessage = languageData[currentLanguage].authWeakPassword;
+                            break;
+                        case 'auth/email-already-in-use':
+                            errorMessage = languageData[currentLanguage].authEmailAlreadyInUse;
+                            break;
+                        case 'auth/operation-not-allowed':
+                            errorMessage = languageData[currentLanguage].authOperationNotAllowed;
+                            break;
+                        case 'auth/too-many-requests':
+                            errorMessage = languageData[currentLanguage].authTooManyRequests;
+                            break;
+                        default:
+                            errorMessage = error.message; // Use raw error message for unknown errors
+                            break;
+                    }
+                    showMessage('genericErrorTitle', errorMessage, true); // Use custom message modal
+                }
+            });
+        }
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                const errorDiv = document.getElementById('login-error');
+                if (errorDiv) errorDiv.classList.add('hidden');
+                if (loginVerificationNeeded) loginVerificationNeeded.classList.add('hidden');
+
+                try {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    console.log("User logged in:", user);
+
+                    if (!user.emailVerified) {
+                        console.warn("Email not verified for user:", user.email);
+                        await signOut(auth); // Sign out the user if email is not verified
+                        showMessage('genericErrorTitle', 'verifyEmailPrompt', true); // Use custom message modal
+                        return; // Stop further execution
+                    }
+
+                    // If email is verified, proceed to app
+                    // The onAuthStateChanged listener will handle showing the appContainer
+
+                } catch (error) {
+                    console.error("Login error:", error);
+                    showMessage('genericErrorTitle', "Error al iniciar sesión: " + error.message, true); // Use custom message modal
+                }
+            });
+        }
+
+        if (signOutBtn) {
+            signOutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                signOut(auth).catch(error => console.error('Sign out error', error));
+            });
+        }
+
+        if (languageToggleBtn) {
+            languageToggleBtn.addEventListener('click', () => {
+                currentLanguage = (currentLanguage === 'es') ? 'en' : 'es';
+                updateUIForLanguage();
+                // Re-initialize main app to load profile for new language if already in app view
+                if (appContainer && appContainer.style.display === 'flex' && userId) {
+                    initializeMainApp();
+                }
+            });
+        }
+
+        // --- MAIN APP LOGIC ---
+        const sections = document.querySelectorAll('.app-section');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const loadCvForm = document.getElementById('form-load-cv');
+        const verifyOfferForm = document.getElementById('form-verify-offer');
+        const updateProfileForm = document.getElementById('form-update-profile');
+        const settingsForm = document.getElementById('form-settings');
+        const loadCvResult = document.getElementById('result-load-cv');
+        const verifyOfferResult = document.getElementById('result-verify-offer');
+        const updateProfileResult = document.getElementById('result-update-profile');
+        const settingsResult = document.getElementById('result-settings');
+        const profileContent = document.getElementById('profile-content');
+        const settingsTextarea = document.getElementById('settings-json');
+        const cvModal = document.getElementById('cv-modal');
+        const cvModalContent = document.getElementById('cv-modal-content');
+        let currentOptimizedCvHtml = '';
+        const homeSearchHistoryContainer = document.getElementById('home-search-history');
+        const homeJobRecommendationsResult = document.getElementById('home-job-recommendations-result');
+        const generateRecommendationsBtn = document.getElementById('generate-recommendations-btn');
+
+        function updateUIForLanguage() {
+            // Update elements with data-i18n attribute
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (languageData[currentLanguage] && languageData[currentLanguage][key]) {
+                    element.textContent = languageData[currentLanguage][key];
+                }
+            });
+
+            // Update placeholders with data-i18n-placeholder attribute
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-i18n-placeholder');
+                if (languageData[currentLanguage] && languageData[currentLanguage][key]) {
+                    element.placeholder = languageData[currentLanguage][key];
+                }
+            });
+
+            // Update title attribute for language toggle button
+            if (languageToggleBtn) {
+                languageToggleBtn.title = (currentLanguage === 'es') ? 'Switch to English' : 'Cambiar a Español';
+            }
+        }
+
+        function initializeMainApp() {
+            if (!userId) return;
+            console.log("Initializing main app for user:", userId);
+            
+            if (profileUnsubscribe) profileUnsubscribe();
+
+            // Use language-specific profile document path
+            const profileRef = doc(db, `artifacts/${appId}/users/${userId}/profile_${currentLanguage}`, "workHistory");
+            profileUnsubscribe = onSnapshot(profileRef, (doc) => {
+                userProfile = doc.exists() ? doc.data() : null;
+                renderProfile();
+            }, (error) => {
+                console.error("Error listening to profile changes:", error);
+                showMessage('genericErrorTitle', languageData[currentLanguage].errorLoadingProfile, true);
+            });
+
+            showSection('section-home');
+            updateUIForLanguage(); // Ensure UI is updated on init
+        }
+
+        const showSection = (sectionId) => {
+            sections.forEach(section => {
+                section.style.display = section.id === sectionId ? 'block' : 'none';
+            });
+            navLinks.forEach(link => {
+                link.classList.toggle('active', link.dataset.section === sectionId);
+            });
+            if (sectionId === 'section-home') {
+                loadSearchHistory();
+            }
+        };
+
+        // Modified showLoading to accept a custom message
+        const showLoading = (element, messageKey) => {
+            const message = languageData[currentLanguage][messageKey] || messageKey; // Use key or fallback to raw string
+            if (element) {
+                element.innerHTML = `<div class="flex flex-col items-center justify-center p-6 bg-white rounded-lg border border-gray-200 shadow-sm"><div class="loader"></div><p class="mt-4 text-gray-600">${message}</p></div>`;
+                element.classList.remove('hidden');
+            }
+        };
+
+        const showResult = (element, messageKey, isError = false, extraContent = '') => {
+            const message = languageData[currentLanguage][messageKey] || messageKey; // Use key or fallback to raw string
+            const bgColor = isError ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200';
+            const textColor = isError ? 'text-red-700' : 'text-green-700';
+            const icon = isError ? 'fa-times-circle' : 'fa-check-circle';
+            if (element) {
+                element.innerHTML = `<div class="p-4 rounded-lg border ${bgColor}"><div class="flex"><div class="flex-shrink-0"><i class="fas ${icon} ${textColor} text-lg"></i></div><div class="ml-3 flex-1"><div class="text-sm ${textColor}">${message}</div>${extraContent}</div></div></div>`;
+                element.classList.remove('hidden');
+            }
+        };
+
+        // Function to show custom message modal
+        function showMessage(titleKey, contentKey, isError = false) {
+            const title = languageData[currentLanguage][titleKey] || titleKey;
+            const content = languageData[currentLanguage][contentKey] || contentKey;
+
+            if (messageModalTitle) messageModalTitle.textContent = title;
+            if (messageModalContent) messageModalContent.textContent = content;
+            
+            // Optional: change color/icon based on isError
+            if (messageModalTitle) messageModalTitle.classList.toggle('text-red-700', isError);
+            if (messageModalTitle) messageModalTitle.classList.toggle('text-gray-800', !isError);
+
+            if (messageModal) messageModal.classList.remove('hidden');
+        }
+
+        if (messageModalCloseBtn) {
+            messageModalCloseBtn.addEventListener('click', () => {
+                if (messageModal) messageModal.classList.add('hidden');
+            });
+        }
+
+
+        const renderProfile = () => {
+            if (userProfile) {
+                if (profileContent) profileContent.innerHTML = renderStructuredProfile(userProfile);
+                if (settingsTextarea) settingsTextarea.value = JSON.stringify(userProfile, null, 2);
+            } else {
+                if (profileContent) profileContent.innerHTML = `<p class="text-gray-500">${languageData[currentLanguage].profileNotFound}</p>`;
+                if (settingsTextarea) settingsTextarea.value = '';
+            }
+        };
+
+        async function callGemini(prompt, forJson = true, model = "gemini-2.5-flash") { 
+            // La clave de API para Gemini debe dejarse vacía para que el entorno de Canvas la inyecte.
+            const apiKey = "AIzaSyC-hFD8RjborZgHmR1UTZ32RUslNWXzeo8"; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: forJson ? { responseMimeType: "application/json" } : {}
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    throw new Error(`API Error: ${response.status} . Body: ${errorBody}`); 
+                }
+                const result = await response.json();
+                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    console.log("Raw Gemini API response text:", text); // Log raw text for debugging
+                    return forJson ? JSON.parse(text) : text;
+                } else {
+                     console.warn("Unexpected Gemini API response structure:", result);
+                    throw new Error("Respuesta inválida de la API de Gemini.");
+                }
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                throw error;
+            }
+        }
+        
+        async function extractTextFromImage(base64ImageData, mimeType) {
+            // La clave de API para Gemini debe dejarse vacía para que el entorno de Canvas la inyecte.
+            const apiKey = "AIzaSyC-hFD8RjborZgHmR1UTZ32RUslNWXzeo8"; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`; 
+
+            const payload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: `Extract all visible text from this image, especially the job description. Return the plain text. Language for extraction: ${currentLanguage === 'es' ? 'Spanish' : 'English'}.` },
+                            {
+                                inlineData: {
+                                    mimeType: mimeType,
+                                    data: base64ImageData
+                                }
+                            }
+                        ]
+                    }
+                ],
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    throw new Error(`API Error (Image to Text): ${response.status} . Body: ${errorBody}`); 
+                }
+
+                const result = await response.json();
+                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts[0]) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    throw new Error("No se pudo extraer texto de la imagen.");
+                }
+            } catch (error) {
+                console.error("Error extracting text from image:", error);
+                throw error;
+            }
+        }
+
+        // --- PROMPT GENERATION FUNCTIONS (Dynamic based on language) ---
+        function getStructurePrompt(textContent, lang) {
+            if (lang === 'es') {
+                return `
+                    Transforma el siguiente texto de un currículum en un objeto JSON. El JSON debe tener esta estructura exacta:
+                    {
+                      "nombre": "string",
+                      "contacto": { "correo": "string", "telefono": "string", "linkedin": "string" },
+                      "resumen": "string",
+                      "experiencia": [{ "titulo": "string", "empresa": "string", "fechas": "string", "descripcion": "string" }],
+                      "educacion": [{ "titulo": "string", "institucion": "string", "fechas": "string" }],
+                      "habilidades": { 
+                        "tecnicas": ["string"], 
+                        "certificaciones": ["string"], 
+                        "logros": ["string"],
+                        "idiomas": { "idioma": "nivel" }
+                      }
+                    }
+                    Asegúrate de que **todas las claves** en el JSON estén entre comillas dobles, por ejemplo: \`"nombre": "valor"\`.
+                    Extrae la información del texto y ajústala a esta estructura. La descripción de la experiencia debe ser un solo string, puedes escapar '\\n' para saltos de línea.
+                    La salida JSON DEBE estar en español.
+                    Texto del CV:
+                    ---
+                    ${textContent}
+                `;
+            } else { // English
+                return `
+                    Transform the following resume text into a JSON object. The JSON must have this exact structure:
+                    {
+                      "name": "string",
+                      "contact": { "email": "string", "phone": "string", "linkedin": "string" },
+                      "summary": "string",
+                      "experience": [{ "title": "string", "company": "string", "dates": "string", "description": "string" }],
+                      "education": [{ "title": "string", "institution": "string", "dates": "string" }],
+                      "skills": { 
+                        "technical": ["string"], 
+                        "certifications": ["string"], 
+                        "achievements": ["string"],
+                        "languages": { "language": "level" }
+                      }
+                    }
+                    Ensure that **all keys** in the JSON are double-quoted, for example: \`"name": "value"\`.
+                    Extract the information from the text and adapt it to this structure. The experience description should be a single string, you can escape '\\n' for line breaks.
+                    The JSON output MUST be in English.
+                    CV Text:
+                    ---
+                    ${textContent}
+                `;
+            }
+        }
+
+        function getSummaryPrompt(structuredCv, lang) {
+            if (lang === 'es') {
+                return `
+                    Resume brevemente el siguiente perfil profesional en un párrafo. Limítate a indicar profesión, años de experiencia, áreas clave, herramientas que domina y fortalezas generales. No repitas frases textuales del CV.
+                    Perfil JSON:
+                    ---
+                    ${JSON.stringify(structuredCv)}
+                `;
+            } else { // English
+                return `
+                    Briefly summarize the following professional profile in one paragraph. Limit yourself to indicating profession, years of experience, key areas, mastered tools, and general strengths. Do not repeat verbatim phrases from the CV.
+                    Profile JSON:
+                    ---
+                    ${JSON.stringify(structuredCv)}
+                `;
+            }
+        }
+
+        function getCompatibilityPrompt(userProfile, offerText, lang) {
+            // Base prompt part that is common to both languages, but with placeholders for language-specific terms
+            const basePrompt = `
+                Analyze the compatibility between the candidate's profile and the job requirements. STRICTLY ADJUST these elements:
+                1. Professional profile (eliminate phrases like "I seek to apply my experience" ✅ Mandatory:
+                "[Relevant Title] with [X] years in [key area].
+                Specialized in [skill 1], [skill 2], and [skill 3] certified by [entity].
+                Achieved [Metric 1], [Metric 2].
+                With a focus on [Concrete value for the role].")
+                2. Responsibilities in each work experience (focused on job keywords MANDATORY)
+                3. Certifications (format: "Name - Year") - **IMPORTANT: Select a maximum of 8 most relevant certifications. Only include Name and Year. Prioritize relevance over quantity.**
+                4. Technical skills (format: "Skill (level)")
+                5. Achievements (quantifiable and aligned)
+
+                Follow this process:
+
+                ### 1. IMPROVED Compatibility Analysis
+                - Extract key requirements from the job offer (e.g., "Advanced Python", "SAP MM", "Agile project management").
+                - Compare point by point with the candidate's profile.
+                - Calculate REAL compatibility:
+                [(Matching skills / Total required) * 40] +
+                [(Relevant years of experience / Required years) * 35] +
+                [(Matching certifications/education / Total required) * 25]
+
+                Specific Adjustments (CRITICAL!) MANDATORY
+                - PROFESSIONAL PROFILE (4-5 lines) Adjusted to the Job Offer:
+                Forbidden: "I seek to apply", "provide solutions", "I wish to contribute".
+                Mandatory:
+                "[Relevant Title] with [X] years in [key area].
+                Specialized in [skill 1], [skill 2], and [skill 3] certified by [entity].
+                Achieved [Metric 1], [Metric 2].
+                With a focus on [Concrete value for the role]."
+
+                - WORK RESPONSIBILITIES (for each experience) Adjusted to the job offer:
+                Forbidden: Generic descriptions.
+                Mandatory:
+                Use first-person singular past tense verbs (e.g., "Diseñé", "Desarrollé", "Vendí") for the responsibilities in the generated CV.
+                [Action Verb] [job keyword] in [context] (e.g., "Optimicé flujos ETL con Python reduciendo tiempos 40%")
+                Maximum 3 bullet points per position
+                Use percentages/values in achievements
+
+                - CERTIFICATIONS:
+                Forbidden: Incomplete names or including entity.
+                Mandatory:
+                "Exact Name - Year" (e.g., 'Azure Data Engineer - 2023')
+                **IMPORTANT: Select a maximum of 8 most relevant certifications. Only include Name and Year. Prioritize relevance over quantity. ALWAYS PRIORITIZE ATS COMPATIBILITY.**
+                
+                - KEY ACHIEVEMENTS:
+                Forbidden: Do not adjust the achievement to the job offer.
+                Mandatory:
+                Adjust key achievements towards the job offer, enter percentages. (e.g., "Gestioné la mejora de un 80% en las ordenes pendientes de ejecucion de material, ayudando en...")
+
+                Important: do not round default values. Calculate the percentage truly based on what you detect, and also do not use "**" for bolding, we do not need to bold text.
+                VERY IMPORTANT: DO NOT ADD MORE YEARS OF EXPERIENCE THAN THE USER ALREADY HAS IN THEIR PROFILE. ONLY ADJUST EXISTING INFORMATION TO THE JOB OFFER.
+
+                2. Decision making:
+                - If compatibility >= 70%:
+                    Generate a CV in JSON format with this exact structure, keeping in mind that neither education nor certifications are removed from the resume or their information reduced, responsibilities of experience, do not change the original names of the work experiences, nor reduce them, use all of them but update their sub-functions to match the job offer, as well as the professional profile, in technical skills give a brief overview of what they serve and the level such as (Power Platform (Avanzado)) in certifications do not forget (the year) but ten en cuenta que las habilidades tecnicas y las certificaciones tecnicas deben ser las mas acordes para la vacante segun la historia laboral del candidato, SIEMPRE PRIORIZA QUE SEA COMPATIBLE CON LA VACANTE, priorizamos siempre el ATS:
+                    {
+                        "cv_final": {
+                            "name": "Full Name",
+                            "contact": { "email": "email@example.com", "phone": "+123456789", "linkedin": "profile-url" },
+                            "summary": "4-5 line professional summary focused on the job offer...",
+                            "experience": [ { "title": "Job Title", "company": "Company Name", "location": "City, Country", "dates": "Month. YearStart – Month. YearEnd", "description": "* Responsibility 1 (using first-person singular past tense verb, e.g., 'Diseñé')\\n* Responsibility 2\\n* Quantifiable achievement, try as much as possible to modify it only slightly towards the job offer, taking into account the work history. MANDATORY MAXIMUM 3 RESPONSIBILITIES" } ],
+                            "education": [ { "title": "Academic Degree", "institution": "Educational Institution", "dates": "YearStart – YearEnd", "thesis": "Thesis title (if applicable)" } ],
+                            "skills": { "technical": ["Skill 1 (level)", "Skill 2 (level)"], "certifications": ["Certification 1 - Year", "Certification 2 - Year"], "achievements": ["Professional achievement 1", "Professional achievement 2"], "languages": {"Spanish": "Native", "English": "Advanced"}, "volunteering": ["Organization 1 - Role", "Organization 2 - Role"], "references": "Available upon request", "full_certifications": "https://url.com" },
+                            "personal_projects": ["Brief description project 1"]
+                        }
+                    }
+
+                - If compatibility < 70%:
+                    Generate a CV in JSON format with this exact structure... (similar to above) and Generate improvement recommendations:
+                    {
+                        "recomendaciones": {
+                            "habilidades_clave": [ "Habilidad específica requerida en la vacante" ],
+                            "certificaciones": [ "Certificación con mayor demanda en el campo (máx. 2)" ],
+                            "cursos_recomendados": [
+                                { "nombre": "Nombre del Curso", "entidad": "Entidad", "url": "URL del curso" }
+                            ],
+                            "tiempo_estimado": "X-Y meses basado en brechas",
+                            "recursos_gratuitos": [
+                                { "nombre": "Nombre recurso", "url": "enlace", "tipo": "video/artículo/curso" }
+                            ],
+                            "proyectos_recomendados": [ "Tipo de proyecto para ganar experiencia práctica" ],
+                            "vacantes_sugeridas_perfil_actual": [
+                                { "rol": "Rol sugerido basado en perfil", "descripcion_breve": "Breve descripción", "portales": ["Portal1", "Portal2"] }
+                            ]
+                        },
+                        "cv_final": { /* ...misma estructura de cv_final ... */ }
+                    }
+
+                Ensure that **all keys** in the JSON are double-quoted, por ejemplo: \`"analisis": { ... }\`.
+
+                3. FINAL Output Format (MANDATORY):
+                {
+                    "analisis": {
+                        "nivelAjuste": "El porcentaje de ajuste que se tuvo que hacer a la hoja de vida para que cumpliera con la vacante debes entregarme un porcentaje de 0 a 100",
+                        "experiencia_Dest": "Es la experiencia destacada o que llamo la atencion para la compatibilidad",
+                        "HabilidadesClave":"las habilidades que mas destacaron en el analisis",
+                        "Logros_rele": "Logros relevantes para la vacante",
+                        "nombreVACANTE": "Nombre de la vacante",
+                        "porcentaje_compatibilidad": "El porcentaje de compatibilidad que te de con el analisis del candidato vs vacante ",
+                        "es_compatible": false,
+                        "habilidades_faltantes": ["Habilidad 1", "Habilidad 2"],
+                        "experiencia_faltante": "X años en [área]",
+                        "consejos": "Un texto de consejos profesionales por si hay una entrevista",
+                        "contacto_reclutador": "contacto del reclutador",
+                        "puntos_fuertes": ["Punto fuerte 1", "Punto fuerte 2"]
+                    },
+                    "output": {}
+                }
+
+                Candidate Profile:
+                ${JSON.stringify(userProfile)}
+
+                Job Details:
+                ${offerText}
+            `;
+
+            if (lang === 'es') {
+                return basePrompt
+                    .replace(/Use first-person singular past tense verbs \(e\.g\., "Designed", "Developed", "Sold"\) for the responsibilities in the generated CV\./g, 'Usa verbos en primera persona del singular en tiempo pasado (ej: "Diseñé", "Desarrollé", "Vendí") para las responsabilidades en el CV generado.')
+                    .replace(/\* Responsibility 1 \(using first-person singular past tense verb, e\.g\., 'Designed'\)/g, '* Responsabilidad 1 (usando verbo en primera persona del singular en tiempo pasado, ej: \'Diseñé\')')
+                    .replace(/Optimized ETL flows with Python reducing times by 40%/g, 'Optimicé flujos ETL con Python reduciendo tiempos 40%')
+                    .replace(/ONLY include certifications HIGHLY relevant to the job offer\. Prioritize relevance over quantity\. ALWAYS PRIORITIZE ATS COMPATIBILITY\./g, 'SOLO incluye certificaciones ALTAMENTE relevantes para la oferta de trabajo. Prioriza la relevancia sobre la cantidad. SIEMPRE PRIORIZA LA COMPATIBILIDAD CON ATS.')
+                    .replace(/- TECHNICAL SKILLS:\n                Forbidden: Generic skills\.\n                Mandatory:\n                "Skill \(level\) - Practical application" \(e\.g\., "Power Platform \(Advanced\) - Process automation"\)/g, '- HABILIDADES TÉCNICAS:\n                Prohibido: Habilidades genéricas.\n                Obligatorio:\n                "Habilidad (nivel)" (ej: "Power Platform (Avanzado)")')
+                    .replace(/- CERTIFICATIONS:\n                Forbidden: Incomplete names\.\n                Mandatory:\n                "Exact Name - Certifying Entity - Year \(e\.g\., 'Azure Data Engineer - Microsoft - 2023'\)"\n                \*\*IMPORTANT: Only include certifications HIGHLY relevant to the specific job offer\. Do not include all certifications from the candidate's profile if they are not directly applicable\. ALWAYS PRIORITIZE ATS COMPATIBILITY\.\*\*/g, '- CERTIFICACIONES:\n                Prohibido: Nombres incompletos o incluir entidad.\n                Obligatorio:\n                "Nombre Exacto - Año" (ej: \'Azure Data Engineer - 2023\')\n                **IMPORTANTE: Selecciona un máximo de 8 certificaciones más relevantes. Solo incluye Nombre y Año. Prioriza la relevancia sobre la cantidad. SIEMPRE PRIORIZA LA COMPATIBILIDAD CON ATS.**')
+                    .replace(/nombreVACANTE/g, 'nombreVACANTE') // No change as it's already in Spanish
+                    .replace(/porcentaje_compatibilidad/g, 'porcentaje_compatibilidad') // No change
+                    .replace(/es_compatible/g, 'es_compatible') // No change
+                    .replace(/habilidades_faltantes/g, 'habilidades_faltantes') // No change
+                    .replace(/experiencia_faltante/g, 'experiencia_faltante') // No change
+                    .replace(/consejos/g, 'consejos') // No change
+                    .replace(/contacto_reclutador/g, 'contacto_reclutador') // No change
+                    .replace(/puntos_fuertes/g, 'puntos_fuertes') // No change
+                    .replace(/nivelAjuste/g, 'nivelAjuste') // No change
+                    .replace(/experiencia_Dest/g, 'experiencia_Dest') // No change
+                    .replace(/HabilidadesClave/g, 'HabilidadesClave') // No change
+                    .replace(/Logros_rele/g, 'Logros_rele') // No change
+                    .replace(/recomendaciones/g, 'recomendaciones') // No change
+                    .replace(/habilidades_clave/g, 'habilidades_clave') // No change
+                    .replace(/certificaciones/g, 'certificaciones') // No change
+                    .replace(/cursos_recomendados/g, 'cursos_recomendados') // No change
+                    .replace(/nombre/g, 'nombre') // No change
+                    .replace(/entidad/g, 'entidad') // No change
+                    .replace(/url/g, 'url') // No change
+                    .replace(/tiempo_estimado/g, 'tiempo_estimado') // No change
+                    .replace(/recursos_gratuitos/g, 'recursos_gratuitos') // No change
+                    .replace(/proyectos_recomendados/g, 'proyectos_recomendados') // No change
+                    .replace(/vacantes_sugeridas_perfil_actual/g, 'vacantes_sugeridas_perfil_actual') // No change
+                    .replace(/rol/g, 'rol') // No change
+                    .replace(/descripcion_breve/g, 'descripcion_breve') // No change
+                    .replace(/portales/g, 'portales') // No change
+                    .replace(/cv_final/g, 'cv_final') // No change
+                    .replace(/contacto/g, 'contacto') // No change
+                    .replace(/correo/g, 'correo') // No change
+                    .replace(/telefono/g, 'telefono') // No change
+                    .replace(/resumen/g, 'resumen') // No change
+                    .replace(/experiencia/g, 'experiencia') // No change
+                    .replace(/titulo/g, 'titulo') // No change
+                    .replace(/empresa/g, 'empresa') // No change
+                    .replace(/fechas/g, 'fechas') // No change
+                    .replace(/descripcion/g, 'descripcion') // No change
+                    .replace(/educacion/g, 'educacion') // No change
+                    .replace(/institucion/g, 'institucion') // No change
+                    .replace(/habilidades/g, 'habilidades') // No change
+                    .replace(/tecnicas/g, 'tecnicas') // No change
+                    .replace(/logros/g, 'logros') // No change
+                    .replace(/idiomas/g, 'idiomas') // No change
+                    .replace(/idioma/g, 'idioma') // No change
+                    .replace(/nivel/g, 'nivel') // No change
+                    .replace(/lugar/g, 'lugar') // No change
+                    .replace(/tesis/g, 'tesis') // No change
+                    .replace(/voluntariado/g, 'voluntariado') // No change
+                    .replace(/referencias/g, 'referencias') // No change
+                    .replace(/certificaciones_completas/g, 'full_certifications') // No change
+                    .replace(/proyectos_personales/g, 'personal_projects') // No change
+                    .replace(/Analiza la compatibilidad entre el perfil del candidato y los requisitos de la vacante\. AJUSTA OBLIGATORIAMENTE estos elementos:/g, 'Analiza la compatibilidad entre el perfil del candidato y los requisitos de la vacante. AJUSTA OBLIGATORIAMENTE estos elementos:')
+                    .replace(/Perfil profesional \(elimina frases como "Busco aplicar mi experiencia" ✅ Obligatorio:/g, 'Perfil profesional (elimina frases como "Busco aplicar mi experiencia" ✅ Obligatorio:')
+                    .replace(/\[Título relevante\] con \[X\] años en \[área clave\]\./g, '[Título relevante] con [X] años en [área clave].')
+                    .replace(/Especializado en \[skill 1\], \[skill 2\] y \[skill 3\] certificado por \[entidad\]\./g, 'Especializado en [skill 1], [skill 2] y [skill 3] certificado por [entidad].')
+                    .replace(/Logré \[Métrica 1\], \[Métrica 2\]\./g, 'Logré [Métrica 1], [Métrica 2].')
+                    .replace(/Con un enfoque en \[Valor concreto para el rol\]\./g, 'Con un enfoque en [Valor concreto para el rol].')
+                    .replace(/Responsabilidades en cada experiencia laboral \(enfocadas en keywords de la vacante OBLIGATORIO\)/g, 'Responsabilidades en cada experiencia laboral (enfocadas en keywords de la vacante OBLIGATORIO)')
+                    .replace(/Prohibido: Descripciones genéricas\./g, 'Prohibido: Descripciones genéricas.')
+                    .replace(/\[Verbo acción\] \[keyword vacante\] en \[contexto\] \(ej: "Optimicé flujos ETL con Python reduciendo tiempos 40%"\)/g, '[Verbo acción] [keyword vacante] en [contexto] (ej: "Optimicé flujos ETL con Python reduciendo tiempos 40%")')
+                    .replace(/Máximo 3 viñetas por puesto/g, 'Máximo 3 viñetas por puesto')
+                    .replace(/Usar porcentajes\/valores en logros/g, 'Usar porcentajes/valores en logros')
+                    .replace(/- KEY ACHIEVEMENTS:/g, '- LOGROS DESTACADOS:')
+                    .replace(/Prohibido: No Ajustar el logro a la vacante\./g, 'Prohibido: No Ajustar el logro a la vacante.')
+                    .replace(/Ajustar los logros destacados hacia la vacante, ingresar porcentajes\. \(ejemplo: "Gestione la mejora de un 80% en las ordenes pendientes de ejecucion de material, ayudando en..."\)/g, 'Ajustar los logros destacados hacia la vacante, ingresar porcentajes. (ejemplo: "Gestioné la mejora de un 80% en las órdenes pendientes de ejecución de material, ayudando en...")')
+                    .replace(/Important: do not round default values\. Calculate the percentage truly based on what you detect, and also do not use "\*\*" for bolding, we do not need to bold text\./g, 'Importante: no redondees los valores predeterminados. Calcula el porcentaje realmente basándote en lo que detectes, y tampoco uses "**" para negritas, no necesitamos negritas.')
+                    .replace(/VERY IMPORTANT: DO NOT ADD MORE YEARS OF EXPERIENCE THAN THE USER ALREADY HAS IN THEIR PROFILE\. ONLY ADJUST EXISTING INFORMATION TO THE JOB OFFER\./g, 'MUY IMPORTANTE: NO AÑADAS MÁS AÑOS DE EXPERIENCIA DE LOS QUE YA TIENE EL USUARIO EN SU PERFIL. SOLO AJUSTA LA INFORMACIÓN EXISTENTE A LA JOB OFFER.')
+                    .replace(/2\. Decision making:/g, '2. Toma de decisión:')
+                    .replace(/- If compatibility >= 70%:/g, '- Si compatibilidad >= 70%:')
+                    .replace(/Generate a CV in JSON format with this exact structure, keeping in mind that neither education nor certifications are removed from the resume or their information reduced, responsibilities of experience, do not change the original names of the work experiences, nor reduce them, use all of them but update their sub-functions to match the job offer, as well as the professional profile, in technical skills give a brief overview of what they serve and the level such as \(Power Platform, n8n \(high-medium or low\)- Process automation\) in certifications do not forget \(the certifying company and the year\) but ten en cuenta que las habilidades tecnicas y las certificaciones tecnicas deben ser las mas acordes para la vacante segun la historia laboral del candidato, SIEMPRE PRIORIZA QUE SEA COMPATIBLE CON LA VACANTE, priorizamos siempre el ATS:/g, 'Genera un CV en formato JSON con esta estructura exacta, teniendo en cuenta que ni la educación ni las certificaciones se eliminan del currículum ni se reduce su información, las responsabilidades de la experiencia no cambian los nombres originales de las experiencias laborales, ni las reducen, usa todas ellas pero actualiza sus subfunciones para que coincidan con la oferta de trabajo, así como el perfil profesional, en habilidades técnicas da una breve descripción de para qué sirven y el nivel como (Power Platform (Avanzado)) en certificaciones no olvides (el año) pero ten en cuenta que las habilidades técnicas y las certificaciones técnicas deben ser las más acordes para la vacante según la historia laboral del candidato, SIEMPRE PRIORIZA QUE SEA COMPATIBLE CON LA VACANTE, priorizamos siempre el ATS:')
+                    .replace(/- If compatibility < 70%:/g, '- Si la compatibilidad < 70%:')
+                    .replace(/Generate a CV in JSON format with this exact structure\.\.\. \(similar to above\) and Generate improvement recommendations:/g, 'Genera un CV en formato JSON con esta estructura exacta... (similar al de arriba) y Genera recomendaciones de mejora:')
+                    .replace(/Specific skill required in the job offer/g, 'Habilidad específica requerida en la vacante')
+                    .replace(/Certification with highest demand in the field \(max\. 2\)/g, 'Certificación con mayor demanda en el campo (máx. 2)')
+                    .replace(/Practical course on recognized platform \(e\.g\., Coursera, Udemy, edX\) Make sure it exists, if it doesn't exist don't put the entity/g, 'Curso práctico en plataforma reconocida (ej: Coursera, Udemy, edX) Asegúrate que exista, si no existe no coloques la entidad')
+                    .replace(/X-Y months based on gaps/g, 'X-Y meses basado en brechas')
+                    .replace(/Type of project to gain practical experience/g, 'Tipo de proyecto para ganar experiencia práctica')
+                    .replace(/3\. FINAL Output Format \(MANDATORY\):/g, '3. Formato de salida FINAL (OBLIGATORIO):')
+                    .replace(/The percentage of adjustment that had to be made to the resume to meet the job offer requirements, you must give me a percentage from 0 to 100/g, 'El porcentaje de ajuste que se tuvo que hacer a la hoja de vida para que cumpliera con la vacante debes entregarme un porcentaje de 0 a 100')
+                    .replace(/The highlighted experience or what caught attention for compatibility/g, 'Es la experiencia destacada o que llamó la atención para la compatibilidad')
+                    .replace(/The skills that stood out most in the analysis/g, 'Las habilidades que más destacaron en el análisis')
+                    .replace(/Achievements relevant to the job offer/g, 'Logros relevantes para la vacante')
+                    .replace(/A text of professional advice for an interview/g, 'Un texto de consejos profesionales por si hay una entrevista')
+                    .replace(/recruiter contact/g, 'contacto del reclutador')
+                    .replace(/Candidate Profile:/g, 'Perfil del Candidato:')
+                    .replace(/Job Details:/g, 'Detalles de la Vacante:')
+                    .replace(/Full Name/g, 'Nombre Completo')
+                    .replace(/email@example\.com/g, 'email@ejemplo.com')
+                    .replace(/profile-url/g, 'url-perfil')
+                    .replace(/4-5 line professional summary focused on the job offer\.\.\./g, 'Resumen profesional de 4-5 líneas enfocado en la vacante...')
+                    .replace(/Job Title/g, 'Puesto de Trabajo')
+                    .replace(/Company Name/g, 'Nombre Empresa')
+                    .replace(/City, Country/g, 'Ciudad, País')
+                    .replace(/Month\. YearStart – Month\. YearEnd/g, 'Mes. AñoInicio – Mes. AñoFin')
+                    .replace(/Academic Degree/g, 'Título Académico')
+                    .replace(/Educational Institution/g, 'Institución Educativa')
+                    .replace(/YearStart – YearEnd/g, 'AñoInicio – AñoFin')
+                    .replace(/Thesis title \(if applicable\)/g, 'Título de tesis (si aplica)')
+                    .replace(/Skill 1 \(level\)- Practical application/g, 'Habilidad 1 (nivel)- Aplicación práctica')
+                    .replace(/Skill 2 \(level\)- Practical application/g, 'Habilidad 2 (nivel)- Aplicación práctica')
+                    .replace(/Certification 1 - Entity - Year/g, 'Certificación 1 - Entidad - Año')
+                    .replace(/Certification 2 - Entity - Year/g, 'Certificación 2 - Entidad - Año')
+                    .replace(/Professional achievement 1/g, 'Logro profesional 1')
+                    .replace(/Professional achievement 2/g, 'Logro profesional 2')
+                    .replace(/Spanish/g, 'Español')
+                    .replace(/Native/g, 'Nativo')
+                    .replace(/English/g, 'Inglés')
+                    .replace(/Advanced/g, 'Avanzado')
+                    .replace(/Organization 1 - Role/g, 'Organización 1 - Rol')
+                    .replace(/Organization 2 - Role/g, 'Organización 2 - Rol')
+                    .replace(/Available upon request/g, 'Disponibles a solicitud')
+                    .replace(/Brief description project 1/g, 'Descripción breve proyecto 1');
+            } else { // English
+                return basePrompt
+                    .replace(/nombreVACANTE/g, 'job_title')
+                    .replace(/porcentaje_compatibilidad/g, 'compatibility_percentage')
+                    .replace(/es_compatible/g, 'is_compatible')
+                    .replace(/habilidades_faltantes/g, 'missing_skills')
+                    .replace(/experiencia_faltante/g, 'missing_experience')
+                    .replace(/consejos/g, 'interview_tips')
+                    .replace(/contacto_reclutador/g, 'recruiter_contact')
+                    .replace(/puntos_fuertes/g, 'strong_points')
+                    .replace(/nivelAjuste/g, 'adjustment_level')
+                    .replace(/experiencia_Dest/g, 'highlighted_experience')
+                    .replace(/HabilidadesClave/g, 'key_skills_highlighted')
+                    .replace(/Logros_rele/g, 'relevant_achievements')
+                    .replace(/recomendaciones/g, 'recommendations')
+                    .replace(/habilidades_clave/g, 'key_skills')
+                    .replace(/certificaciones/g, 'certifications')
+                    .replace(/cursos_recomendados/g, 'recommended_courses')
+                    .replace(/nombre/g, 'name')
+                    .replace(/entidad/g, 'entity')
+                    .replace(/url/g, 'url')
+                    .replace(/tiempo_estimado/g, 'estimated_time')
+                    .replace(/recursos_gratuitos/g, 'free_resources')
+                    .replace(/proyectos_recomendados/g, 'recommended_projects')
+                    .replace(/vacantes_sugeridas_perfil_actual/g, 'suggested_vacancies_current_profile')
+                    .replace(/rol/g, 'role')
+                    .replace(/descripcion_breve/g, 'brief_description')
+                    .replace(/portales/g, 'portals')
+                    .replace(/cv_final/g, 'cv_final')
+                    .replace(/contacto/g, 'contact')
+                    .replace(/correo/g, 'email')
+                    .replace(/telefono/g, 'phone')
+                    .replace(/resumen/g, 'summary')
+                    .replace(/experiencia/g, 'experience')
+                    .replace(/titulo/g, 'title')
+                    .replace(/empresa/g, 'company')
+                    .replace(/fechas/g, 'dates')
+                    .replace(/descripcion/g, 'description')
+                    .replace(/educacion/g, 'education')
+                    .replace(/institucion/g, 'institution')
+                    .replace(/habilidades/g, 'skills')
+                    .replace(/tecnicas/g, 'technical')
+                    .replace(/logros/g, 'achievements')
+                    .replace(/idiomas/g, 'languages')
+                    .replace(/idioma/g, 'language')
+                    .replace(/nivel/g, 'level')
+                    .replace(/lugar/g, 'location')
+                    .replace(/tesis/g, 'thesis')
+                    .replace(/voluntariado/g, 'volunteering')
+                    .replace(/referencias/g, 'references')
+                    .replace(/certificaciones_completas/g, 'full_certifications')
+                    .replace(/proyectos_personales/g, 'personal_projects')
+                    .replace(/Analiza la compatibilidad entre el perfil del candidato y los requisitos de la vacante\. AJUSTA OBLIGATORIAMENTE estos elementos:/g, 'Analyze the compatibility between the candidate\'s profile and the job requirements. STRICTLY ADJUST these elements:')
+                    .replace(/Perfil profesional \(elimina frases como "Busco aplicar mi experiencia" ✅ Obligatorio:/g, 'Professional profile (eliminate phrases like "I seek to apply my experience" ✅ Mandatory:')
+                    .replace(/\[Título relevante\] con \[X\] años en \[área clave\]\./g, '[Relevant Title] with [X] years in [key area].')
+                    .replace(/Especializado en \[skill 1\], \[skill 2\] y \[skill 3\] certificado por \[entidad\]\./g, 'Specialized in [skill 1], [skill 2], and [skill 3] certified by [entity].')
+                    .replace(/Logré \[Métrica 1\], \[Métrica 2\]\./g, 'Achieved [Metric 1], [Metric 2].')
+                    .replace(/Con un enfoque en \[Valor concreto para el rol\]\./g, 'With a focus on [Concrete value for the role].')
+                    .replace(/Responsabilidades en cada experiencia laboral \(enfocadas en keywords de la vacante OBLIGATORIO\)/g, 'Responsibilities in each work experience (focused on job keywords MANDATORY)')
+                    .replace(/Prohibido: Descripciones genéricas\./g, 'Forbidden: Generic descriptions.')
+                    .replace(/\[Verbo acción\] \[keyword vacante\] en \[contexto\] \(ej: "Optimicé flujos ETL con Python reduciendo tiempos 40%"\)/g, '[Action Verb] [job keyword] in [context] (e.g., "Optimized ETL flows with Python reducing times by 40%")')
+                    .replace(/Máximo 3 viñetas por puesto/g, 'Maximum 3 bullet points per position')
+                    .replace(/Usar porcentajes\/valores en logros/g, 'Use percentages/values in achievements')
+                    .replace(/- CERTIFICATIONS:\n                Forbidden: Incomplete names\.\n                Mandatory:\n                "Exact Name - Certifying Entity - Year \(e\.g\., 'Azure Data Engineer - Microsoft - 2023'\)"\n                \*\*IMPORTANT: Only include certifications HIGHLY relevant to the specific job offer\. Do not include all certifications from the candidate's profile if they are not directly applicable\. ALWAYS PRIORITIZE ATS COMPATIBILITY\.\*\*/g, '- CERTIFICATIONS:\n                Forbidden: Incomplete names or including entity.\n                Mandatory:\n                "Exact Name - Year" (e.g., \'Azure Data Engineer - 2023\')\n                **IMPORTANT: Select a maximum of 8 most relevant certifications. Only include Name and Year. Prioritize relevance over quantity. ALWAYS PRIORITIZE ATS COMPATIBILITY.**')
+                    .replace(/- KEY ACHIEVEMENTS:/g, '- KEY ACHIEVEMENTS:')
+                    .replace(/Prohibido: No Ajustar el logro a la vacante\./g, 'Forbidden: Do not adjust the achievement to the job offer.')
+                    .replace(/Ajustar los logros destacados hacia la vacante, ingresar porcentajes\. \(ejemplo: "Gestione la mejora de un 80% en las ordenes pendientes de ejecucion de material, ayudando en..."\)/g, 'Adjust key achievements towards the job offer, enter percentages. (e.g., "Managed an 80% improvement in pending material execution orders, assisting in...")')
+                    .replace(/Important: do not round default values\. Calculate the percentage truly based on what you detect, and also do not use "\*\*" for bolding, we do not need to bold text\./g, 'Important: do not round default values. Calculate the percentage truly based on what you detect, and also do not use "**" for bolding, we do not need to bold text.') // This line was already English, but re-added for clarity.
+                    .replace(/VERY IMPORTANT: DO NOT ADD MORE YEARS OF EXPERIENCE THAN THE USER ALREADY HAS IN THEIR PROFILE\. ONLY ADJUST EXISTING INFORMATION TO THE JOB OFFER\./g, 'VERY IMPORTANT: DO NOT ADD MORE YEARS OF EXPERIENCE THAN THE USER ALREADY HAS IN THEIR PROFILE. ONLY ADJUST EXISTING INFORMATION TO THE JOB OFFER.')
+                    .replace(/2\. Decision making:/g, '2. Decision making:')
+                    .replace(/- If compatibility >= 70%:/g, '- If compatibility >= 70%:')
+                    .replace(/Generate a CV in JSON format with this exact structure, keeping in mind that neither education nor certifications are removed from the resume or their information reduced, responsibilities of experience, do not change the original names of the work experiences, nor reduce them, use all of them but update their sub-functions to match the job offer, as well as the professional profile, in technical skills give a brief overview of what they serve and the level such as \(Power Platform, n8n \(high-medium or low\)- Process automation\) in certifications do not forget \(the certifying company and the year\) but ten en cuenta que las habilidades tecnicas y las certificaciones tecnicas deben ser las mas acordes para la vacante segun la historia laboral del candidato, SIEMPRE PRIORIZA QUE SEA COMPATIBLE CON LA VACANTE, priorizamos siempre el ATS:/g, 'Generate a CV in JSON format with this exact structure, keeping in mind that neither education nor certifications are removed from the resume or their information reduced, responsibilities of experience, do not change the original names of the work experiences, nor reduce them, use all of them but update their sub-functions to match the job offer, as well as the professional profile, in technical skills give a brief overview of what they serve and the level such as (Power Platform (Advanced)) in certifications do not forget (the year) but keep in mind that technical skills and technical certifications must be the most appropriate for the job offer according to the candidate\'s work history, ALWAYS PRIORITIZE THAT IT IS COMPATIBLE WITH THE JOB OFFER, we always prioritize the ATS:')
+                    .replace(/- If compatibility < 70%:/g, '- If compatibility < 70%:')
+                    .replace(/Generate a CV in JSON format with this exact structure\.\.\. \(similar to above\) and Generate improvement recommendations:/g, 'Generate a CV in JSON format with this exact structure... (similar to above) and Generate improvement recommendations:')
+                    .replace(/Specific skill required in the job offer/g, 'Specific skill required in the job offer')
+                    .replace(/Certification with highest demand in the field \(max\. 2\)/g, 'Certification with highest demand in the field (max. 2)')
+                    .replace(/Practical course on recognized platform \(e\.g\., Coursera, Udemy, edX\) Make sure it exists, if it doesn't exist don't put the entity/g, 'Practical course on recognized platform (e.g., Coursera, Udemy, edX) Make sure it exists, if it doesn\'t exist don\'t put the entity')
+                    .replace(/X-Y months based on gaps/g, 'X-Y months based on gaps')
+                    .replace(/Type of project to gain practical experience/g, 'Type of project to gain practical experience')
+                    .replace(/3\. FINAL Output Format \(MANDATORY\):/g, '3. FINAL Output Format (MANDATORY):')
+                    .replace(/The percentage of adjustment that had to be made to the resume to meet the job offer requirements, you must give me a percentage from 0 to 100/g, 'The percentage of adjustment that had to be made to the resume to meet the job offer requirements, you must give me a percentage from 0 to 100')
+                    .replace(/The highlighted experience or what caught attention for compatibility/g, 'The highlighted experience or what caught attention for compatibility')
+                    .replace(/The skills that stood out most in the analysis/g, 'The skills that stood out most in the analysis')
+                    .replace(/Achievements relevant to the job offer/g, 'Achievements relevant to the job offer')
+                    .replace(/A text of professional advice for an interview/g, 'A text of professional advice for an interview')
+                    .replace(/recruiter contact/g, 'recruiter contact')
+                    .replace(/Candidate Profile:/g, 'Candidate Profile:')
+                    .replace(/Job Details:/g, 'Job Details:')
+                    .replace(/Full Name/g, 'Full Name')
+                    .replace(/email@example\.com/g, 'email@example.com')
+                    .replace(/profile-url/g, 'profile-url')
+                    .replace(/4-5 line professional summary focused on the job offer\.\.\./g, '4-5 line professional summary focused on the job offer...')
+                    .replace(/Job Title/g, 'Job Title')
+                    .replace(/Company Name/g, 'Company Name')
+                    .replace(/City, Country/g, 'City, Country')
+                    .replace(/Month\. YearStart – Month\. YearEnd/g, 'Month. YearStart – Month. YearEnd')
+                    .replace(/Academic Degree/g, 'Academic Degree')
+                    .replace(/Educational Institution/g, 'Educational Institution')
+                    .replace(/YearStart – YearEnd/g, 'YearStart – YearEnd')
+                    .replace(/Thesis title \(if applicable\)/g, 'Thesis title (if applicable)')
+                    .replace(/Skill 1 \(level\)- Practical application/g, 'Skill 1 (level)- Practical application')
+                    .replace(/Skill 2 \(level\)- Practical application/g, 'Skill 2 (level)- Practical application')
+                    .replace(/Certification 1 - Entity - Year/g, 'Certification 1 - Entity - Year')
+                    .replace(/Certification 2 - Entity - Year/g, 'Certification 2 - Entity - Year')
+                    .replace(/Professional achievement 1/g, 'Professional achievement 1')
+                    .replace(/Professional achievement 2/g, 'Professional achievement 2')
+                    .replace(/Spanish/g, 'Spanish')
+                    .replace(/Native/g, 'Native')
+                    .replace(/English/g, 'English')
+                    .replace(/Advanced/g, 'Advanced')
+                    .replace(/Organization 1 - Role/g, 'Organization 1 - Role')
+                    .replace(/Organization 2 - Role/g, 'Organization 2 - Role')
+                    .replace(/Available upon request/g, 'Available upon request')
+                    .replace(/Brief description project 1/g, 'Brief description project 1');
+            }
+        }
+
+        function getMergePrompt(userProfile, updateText, lang) {
+            if (lang === 'es') {
+                return `
+                    Actualiza el siguiente JSON de historia laboral con la nueva información proporcionada. Integra los nuevos datos de forma coherente en la estructura existente. No elimines información, solo añade o fusiona.
+                    Tu respuesta DEBE ser únicamente el objeto JSON completo y actualizado.
+                    Asegúrate de que **todas las claves** en el JSON estén entre comillas dobles, por ejemplo: \`"nombre": "valor"\`.
+                    ---
+                    HISTORIA LABORAL ACTUAL (JSON):
+                    ${JSON.stringify(userProfile)}
+                    ---
+                    NUEVA INFORMACIÓN (Texto):
+                    ${updateText}
+                `;
+            } else { // English
+                return `
+                    Update the following work history JSON with the new information provided. Integrate the new data coherently into the existing structure. Do not delete information, only add or merge.
+                    Your response MUST be only the complete and updated JSON object.
+                    Ensure that **all keys** in the JSON are double-quoted, for example: \`"name": "value"\`.
+                    ---
+                    CURRENT WORK HISTORY (JSON):
+                    ${JSON.stringify(userProfile)}
+                    ---
+                    NEW INFORMATION (Text):
+                    ${updateText}
+                `;
+            }
+        }
+
+        function getJobRecPrompt(userProfile, lang) {
+            if (lang === 'es') {
+                return `
+                    Basado en el siguiente perfil, sugiere 5 roles y para cada uno, 2 portales de empleo.
+                    Formato JSON: { "recomendaciones_empleo": [ { "rol": "Rol", "portales": ["Portal1", "Portal2"] } ] }
+                    Asegúrate de que **todas las claves** en el JSON estén entre comillas dobles, por ejemplo: \`"rol": "valor"\`.
+                    Perfil: ${JSON.stringify(userProfile)}
+                `;
+            } else { // English
+                return `
+                    Based on the following profile, suggest 5 roles and for each, 2 job portals.
+                    JSON Format: { "job_recommendations": [ { "role": "Role", "portals": ["Portal1", "Portal2"] } ] }
+                    Ensure that **all keys** in the JSON are double-quoted, por ejemplo: \`"role": "value"\`.
+                    Profile: ${JSON.stringify(userProfile)}
+                `;
+            }
+        }
+
+        // --- CORE APP LOGIC ---
+
+        if (loadCvForm) {
+            loadCvForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!userId) {
+                    showMessage('genericErrorTitle', 'mustLoginCV', true);
+                    return;
+                }
+                const fileInput = document.getElementById('cv-file');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    showMessage('genericErrorTitle', 'selectPdfFile', true);
+                    return;
+                }
+                const file = fileInput.files[0];
+                
+                // Set a timeout for the entire process
+                const timeoutPromise = new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        reject(new Error(languageData[currentLanguage].cvOperationTimeout));
+                    }, 120000); // 2 minutes timeout
+                });
+
+                try {
+                    showLoading(loadCvResult, 'loadingAndProcessingPdf'); // More specific loading message
+
+                    const readerPromise = new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = (err) => reject(new Error(languageData[currentLanguage].errorReadingPdf));
+                        reader.readAsArrayBuffer(file);
+                    });
+
+                    const pdfData = await Promise.race([readerPromise, timeoutPromise]);
+                    
+                    const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                    let textContent = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const text = await page.getTextContent();
+                        textContent += text.items.map(s => s.str).join(' ');
+                    }
+                    console.log("Extracted PDF text content length:", textContent.length); // Log text content length
+
+                    // Update loading message for AI processing
+                    showLoading(loadCvResult, 'analyzingCvAi');
+
+                    const structurePrompt = getStructurePrompt(textContent, currentLanguage);
+                    const structuredCv = await Promise.race([callGemini(structurePrompt), timeoutPromise]);
+                    console.log("Structured CV JSON size (characters):", JSON.stringify(structuredCv).length); // Log JSON size
+
+                    showLoading(loadCvResult, 'savingProfileFirebase'); // Specific loading message
+
+                    const profileRef = doc(db, `artifacts/${appId}/users/${userId}/profile_${currentLanguage}`, "workHistory");
+                    await Promise.race([setDoc(profileRef, structuredCv), timeoutPromise]);
+
+                    const summaryPrompt = getSummaryPrompt(structuredCv, currentLanguage);
+                    const summary = await Promise.race([callGemini(summaryPrompt, false), timeoutPromise]);
+
+                    showResult(loadCvResult, 'cvLoadedSuccess', false, summary);
+                    loadCvForm.reset();
+
+                } catch (error) {
+                    console.error("Error processing CV:", error);
+                    let errorMessageKey = 'unexpectedErrorCv';
+                    if (error.message.includes("API Error")) {
+                        errorMessageKey = 'errorAiCvAnalysis';
+                    } else if (error.message.includes("tiempo límite") || error.message.includes("timed out")) {
+                        errorMessageKey = 'cvOperationTimeout';
+                    } else if (error.message.includes("Error al leer el archivo PDF") || error.message.includes("Error reading PDF file")) {
+                        errorMessageKey = 'errorReadingPdf';
+                    } else if (error.message.includes("PERMISSION_DENIED")) {
+                        errorMessageKey = 'errorFirebasePermissions';
+                    }
+                    showMessage('genericErrorTitle', errorMessageKey, true); // Use custom message modal
+                }
+            });
+        }
+
+        async function performCompatibilityAnalysis(offerText, historyData = null) {
+            try {
+                showLoading(verifyOfferResult, 'analyzingCompatibilityAi'); // Specific loading message
+                
+                let analisis;
+                let output;
+                let cvFinalData;
+
+                if (historyData) {
+                    // If loading from history, use stored data
+                    analisis = historyData.analisis;
+                    output = historyData.output;
+                    cvFinalData = historyData.output.cv_final; // Use the stored cv_final JSON
+                } else {
+                    // Otherwise, call Gemini API
+                    const compatibilityPrompt = getCompatibilityPrompt(userProfile, offerText, currentLanguage);
+                    const analysisResult = await callGemini(compatibilityPrompt);
+                    
+                    analisis = analysisResult.analisis;
+                    output = analysisResult.output;
+                    cvFinalData = analysisResult.output.cv_final; // Get the newly generated cv_final JSON
+
+                    // Save new search to history
+                    const historyRef = collection(db, `artifacts/${appId}/users/${userId}/searchHistory`);
+                    await addDoc(historyRef, {
+                        analisis: analisis,
+                        jobOfferText: offerText,
+                        output: output, // Store the entire output object
+                        isCompatible: analisis?.es_compatible ?? analisis?.is_compatible ?? false, 
+                        compatibilityPercentage: analisis?.porcentaje_compatibilidad ?? analisis?.compatibility_percentage ?? 0, 
+                        timestamp: serverTimestamp(),
+                        language: currentLanguage
+                    });
+                }
+
+                let message = `<b>${languageData[currentLanguage].compatibility}: ${analisis.porcentaje_compatibilidad || analisis.compatibility_percentage}%</b><br>`;
+                let extraContent = '';
+
+                // Generate HTML from the cvFinalData (whether from new analysis or history)
+                currentOptimizedCvHtml = generateCvHtml(cvFinalData || {}); 
+                if (cvModalContent) cvModalContent.innerHTML = currentOptimizedCvHtml;
+
+                if (analisis.es_compatible || analisis.is_compatible) { // Check both keys
+                    message += `<p class="mt-2">${languageData[currentLanguage].congratulationsCandidate}</p>`;
+                    extraContent = `
+                        <p class="mt-2 text-sm"><b>${languageData[currentLanguage].strongPoints}</b> ${analisis.puntos_fuertes?.join(', ') || ''}</p>
+                        <p class="mt-2 text-sm"><b>${languageData[currentLanguage].interviewTips}</b> ${analisis.consejos || ''}</p>
+                        <button id="show-cv-modal-btn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300 transform hover:scale-105">${languageData[currentLanguage].viewOptimizedCV}</button>
+                        <button id="download-cv-word-btn" class="mt-4 ml-2 bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition duration-300 transform hover:scale-105">${languageData[currentLanguage].downloadCvWord}</button>
+                    `;
+                    showResult(verifyOfferResult, message, false, extraContent);
+                } else {
+                    const plan = output.recomendaciones || output.recommendations; // Check both keys
+                    message += `<p class="mt-2">${languageData[currentLanguage].areasOfOpportunity}</p>`;
+                    extraContent = `
+                        <ul class="list-disc list-inside mt-2 space-y-1 text-sm">
+                            ${(plan?.habilidades_clave || plan?.key_skills)?.map(h => `<li><b>${languageData[currentLanguage].keySkill}</b> ${h}</li>`).join('') || ''}
+                            ${(plan?.certificaciones || plan?.certifications)?.map(c => `<li><b>${languageData[currentLanguage].recommendedCertification}</b> ${c}</li>`).join('') || ''}
+                        </ul>
+                        ${(plan?.cursos_recomendados || plan?.recommended_courses)?.length > 0 ? `
+                        <p class="mt-3 text-sm font-semibold">${languageData[currentLanguage].recommendedCourses}</p>
+                        <ul class="list-disc list-inside ml-4 text-sm">
+                            ${(plan.cursos_recomendados || plan.recommended_courses).map(course => `
+                                <li>
+                                    ${course.nombre || course.name} - ${course.entidad || course.entity} 
+                                    ${course.url ? `<a href="${course.url}" target="_blank" class="text-blue-600 hover:underline">(${languageData[currentLanguage].courseUrl})</a>` : ''}
+                                </li>
+                            `).join('')}
+                        </ul>` : ''}
+                        ${(plan?.recursos_gratuitos || plan?.free_resources)?.length > 0 ? `
+                        <p class="mt-3 text-sm font-semibold">${languageData[currentLanguage].freeResources}</p>
+                        <ul class="list-disc list-inside ml-4 text-sm">
+                            ${(plan.recursos_gratuitos || plan.free_resources).map(resource => `
+                                <li>
+                                    ${resource.nombre || resource.name} (${resource.tipo || resource.type})
+                                    ${resource.url ? `<a href="${resource.url}" target="_blank" class="text-blue-600 hover:underline">(${languageData[currentLanguage].courseUrl})</a>` : ''}
+                                </li>
+                            `).join('')}
+                        </ul>` : ''}
+                        
+                        <p class="mt-3 text-sm italic"><b>${languageData[currentLanguage].estimatedImprovementTime}</b> ${plan?.tiempo_estimado || plan?.estimated_time || ''}</p>
+
+                        ${(plan?.vacantes_sugeridas_perfil_actual || plan?.suggested_vacancies_current_profile)?.length > 0 ? `
+                        <p class="mt-3 text-sm font-semibold">${languageData[currentLanguage].suggestedVacanciesBasedOnProfile}</p>
+                        <ul class="list-disc list-inside ml-4 text-sm">
+                            ${(plan.vacantes_sugeridas_perfil_actual || plan.suggested_vacancies_current_profile).map(vacancy => `
+                                <li>
+                                    <b>${vacancy.rol || vacancy.role}</b>: ${vacancy.descripcion_breve || vacancy.brief_description}
+                                    <p class="text-xs text-gray-500">${languageData[currentLanguage].portals}: ${(vacancy.portales || []).join(', ')}</p>
+                                </li>
+                            `).join('')}
+                        </ul>` : ''}
+
+                        <button id="show-cv-modal-btn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300 transform hover:scale-105">${languageData[currentLanguage].viewSuggestedCV}</button>
+                        <button id="download-cv-word-btn" class="mt-4 ml-2 bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition duration-300 transform hover:scale-105">${languageData[currentLanguage].downloadCvWord}</button>
+                    `;
+                    showResult(verifyOfferResult, message, true, extraContent);
+                }
+
+                const showCvModalBtn = document.getElementById('show-cv-modal-btn');
+                if (showCvModalBtn) showCvModalBtn.addEventListener('click', () => { if (cvModal) cvModal.classList.remove('hidden'); });
+                const downloadCvWordBtn = document.getElementById('download-cv-word-btn'); // Changed ID back to word
+                if (downloadCvWordBtn) downloadCvWordBtn.addEventListener('click', () => downloadCvAsWord(currentOptimizedCvHtml, `CV_Analizado_${analisis.nombreVACANTE || analisis.job_title || 'Oferta'}.doc`)); // Changed function and extension back to doc
+
+            } catch (error) {
+                console.error("Error verifying offer:", error);
+                showMessage('genericErrorTitle', 'errorAnalyzingOffer', true); // Use custom message modal
+            }
+        }
+
+        if (verifyOfferForm) {
+            verifyOfferForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!userProfile) {
+                    showMessage('genericErrorTitle', 'mustLoadProfile', true);
+                    return;
+                }
+                const offerTextInput = document.getElementById('offer-text').value;
+                const offerImageInput = document.getElementById('offer-image');
+                showLoading(verifyOfferResult, 'analyzingOffer'); // Initial loading message
+
+                if (offerImageInput && offerImageInput.files && offerImageInput.files.length > 0) {
+                    const file = offerImageInput.files[0];
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        const mimeType = file.type;
+                        const base64ImageData = event.target.result.split(',')[1];
+                        try {
+                            showLoading(verifyOfferResult, 'extractingTextFromImage'); // Specific loading for image
+                            const extractedText = await extractTextFromImage(base64ImageData, mimeType);
+                            await performCompatibilityAnalysis(extractedText);
+                        } catch (error) {
+                            showMessage('genericErrorTitle', 'errorProcessingImage', true); // Use custom message modal
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                } else if (offerTextInput.trim()) {
+                    await performCompatibilityAnalysis(offerTextInput.trim());
+                } else {
+                    showMessage('genericErrorTitle', 'pasteOfferOrUploadImage', true); // Use custom message modal
+                }
+            });
+        }
+
+        if (updateProfileForm) {
+            updateProfileForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!userProfile) {
+                    showMessage('genericErrorTitle', 'mustLoadProfile', true);
+                    return;
+                }
+                const updateText = document.getElementById('update-text').value;
+                if (!updateText.trim()) {
+                    showMessage('genericErrorTitle', 'enterUpdateInfo', true);
+                    return;
+                }
+                showLoading(updateProfileResult, 'updatingProfileAi'); // Specific loading message
+
+                try {
+                    const mergePrompt = getMergePrompt(userProfile, updateText, currentLanguage);
+                    const updatedProfile = await callGemini(mergePrompt);
+                    const profileRef = doc(db, `artifacts/${appId}/users/${userId}/profile_${currentLanguage}`, "workHistory");
+                    await setDoc(profileRef, updatedProfile); 
+                    showMessage('successTitle', 'profileUpdatedSuccess'); // Use custom message modal
+                    updateProfileForm.reset();
+                } catch (error) {
+                    console.error("Error updating profile:", error);
+                    showMessage('genericErrorTitle', 'errorUpdating', true); // Use custom message modal
+                }
+            });
+        }
+
+        if (settingsForm) {
+            settingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const jsonString = settingsTextarea.value;
+                try {
+                    const parsedJson = JSON.parse(jsonString);
+                    showLoading(settingsResult, 'savingSettings'); // Specific loading message
+                    const profileRef = doc(db, `artifacts/${appId}/users/${userId}/profile_${currentLanguage}`, "workHistory");
+                    await setDoc(profileRef, parsedJson);
+                    showMessage('successTitle', 'settingsSavedSuccess'); // Use custom message modal
+                } catch (error) {
+                    console.error("Error saving settings:", error);
+                    showMessage('genericErrorTitle', 'invalidJsonSaveError', true); // Use custom message modal
+                }
+            });
+        }
+
+        async function loadSearchHistory() {
+            if (!userId) {
+                if (homeSearchHistoryContainer) homeSearchHistoryContainer.innerHTML = `<p class="text-gray-500">${languageData[currentLanguage].mustLoginHistory}</p>`;
+                return;
+            }
+            if (homeSearchHistoryContainer) homeSearchHistoryContainer.innerHTML = `<div class="loader"></div><p class="mt-4 text-gray-600">${languageData[currentLanguage].loadingHistory}</p>`;
+            try {
+                const q = query(collection(db, `artifacts/${appId}/users/${userId}/searchHistory`), orderBy("timestamp", "desc"), limit(5));
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    if (homeSearchHistoryContainer) homeSearchHistoryContainer.innerHTML = `<p class="text-gray-500">${languageData[currentLanguage].noRecentAnalysis}</p>`;
+                    return;
+                }
+                let historyHtml = '<ul class="space-y-3">';
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'N/A';
+                    const isCompatible = data.isCompatible !== undefined ? data.isCompatible : (data.analisis?.es_compatible ?? false); // Handle both keys and ensure default
+                    const compatibilityPercentage = data.compatibilityPercentage !== undefined ? data.compatibilityPercentage : (data.analisis?.porcentaje_compatibilidad ?? 0); // Handle both keys and ensure default
+                    const jobTitle = data.analisis?.nombreVACANTE || data.analisis?.job_title || languageData[currentLanguage].vacantWithoutName; // Handle both keys
+
+                    const color = isCompatible ? 'green' : 'red';
+                    historyHtml += `
+                        <li class="p-3 border rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition duration-200" data-doc-id="${doc.id}">
+                            <p class="font-semibold">${jobTitle}</p>
+                            <p class="text-sm text-${color}-600">${languageData[currentLanguage].compatibility}: ${compatibilityPercentage}%</p>
+                            <p class="text-xs text-gray-500">${date}</p>
+                        </li>`;
+                });
+                historyHtml += '</ul>';
+                if (homeSearchHistoryContainer) homeSearchHistoryContainer.innerHTML = historyHtml;
+
+                // Add event listeners to history items
+                homeSearchHistoryContainer.querySelectorAll('li[data-doc-id]').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const docId = e.currentTarget.dataset.docId;
+                        loadAndDisplayHistoryItem(docId);
+                    });
+                });
+
+            } catch (error) {
+                console.error("Error loading search history:", error);
+                if (homeSearchHistoryContainer) homeSearchHistoryContainer.innerHTML = `<p class="text-red-500">${languageData[currentLanguage].errorLoadingHistory}</p>`;
+            }
+        }
+
+        async function loadAndDisplayHistoryItem(docId) {
+            try {
+                showLoading(verifyOfferResult, 'loadingHistoryItem'); // Show loading in the verify offer section
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/searchHistory`, docId);
+                const docSnap = await getDoc(docRef); // Use getDoc here
+
+                if (docSnap.exists()) {
+                    const historyData = docSnap.data();
+                    // Populate the offer text area for viewing
+                    document.getElementById('offer-text').value = historyData.jobOfferText || '';
+                    // Switch to the verify offer section
+                    showSection('section-verify-offer');
+                    // Perform compatibility analysis display with the loaded history data
+                    await performCompatibilityAnalysis(historyData.jobOfferText, historyData);
+                } else {
+                    showMessage('genericErrorTitle', 'No se encontró el historial para el ID proporcionado.', true);
+                }
+            } catch (error) {
+                console.error("Error loading and displaying history item:", error);
+                showMessage('genericErrorTitle', 'Error al cargar el historial. Por favor, intenta de nuevo.', true);
+            }
+        }
+
+
+        async function generateJobRecommendations() {
+            if (!userProfile) {
+                showMessage('genericErrorTitle', 'loadProfileForRecommendations', true); // Use custom message modal
+                return;
+            }
+            showLoading(homeJobRecommendationsResult, 'generatingRecommendations'); // Specific loading message
+            const jobRecPrompt = getJobRecPrompt(userProfile, currentLanguage);
+            try {
+                const recommendations = await callGemini(jobRecPrompt);
+                let html = '<ul class="list-disc list-inside space-y-2">';
+                const recsArray = recommendations.recomendaciones_empleo || recommendations.job_recommendations; // Handle both keys
+                if (recsArray) {
+                    recsArray.forEach(rec => {
+                        html += `<li><b>${rec.rol || rec.role}</b>: ${(rec.portales || []).join(', ')}</li>`; // Ensure rec.portales is an array
+                    });
+                }
+                html += '</ul>';
+                showResult(homeJobRecommendationsResult, 'recommendationsGenerated', false, html);
+            } catch (error) {
+                showMessage('genericErrorTitle', 'errorGeneratingRecommendations', true); // Use custom message modal
+            }
+        }
+        
+        if (generateRecommendationsBtn) {
+            generateRecommendationsBtn.addEventListener('click', generateJobRecommendations);
+        }
+
+        function renderStructuredProfile(profileData) {
+            const get = (val, def = '') => val || def;
+            const getArr = (arr) => arr || [];
+            
+            // Ensure profileData is an object, even if empty
+            profileData = profileData || {}; 
+
+            const contact = profileData.contacto || profileData.contact || {};
+            const skills = profileData.habilidades || profileData.skills || {};
+            const profileSections = languageData[currentLanguage].profileSections || {}; // Ensure profileSections is defined
+
+            let html = `
+                <div class="space-y-6">
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-3">${get(profileData.nombre || profileData.name)}</h4>
+                        <div class="text-gray-700 text-sm">
+                            <p><i class="fas fa-envelope mr-2 text-blue-500"></i> ${get(contact.correo || contact.email)}</p>
+                            ${get(contact.telefono || contact.phone) ? `<p><i class="fas fa-phone mr-2 text-blue-500"></i> ${get(contact.telefono || contact.phone)}</p>` : ''}
+                            ${get(contact.linkedin) ? `<p><i class="fab fa-linkedin mr-2 text-blue-500"></i> <a href="${get(contact.linkedin)}" target="_blank" class="text-blue-600 hover:underline">${get(contact.linkedin)}</a></p>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-3">${get(profileSections.summary)}</h4>
+                        <p class="text-gray-700">${get(profileData.resumen || profileData.summary)}</p>
+                    </div>
+
+                    ${getArr(profileData.experiencia || profileData.experience).length > 0 ? `
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-3">${get(profileSections.experience)}</h4>
+                        <div class="space-y-4">
+                            ${getArr(profileData.experiencia || profileData.experience).map(exp => `
+                                <div>
+                                    <p class="font-medium text-gray-800">${get(exp.titulo || exp.title)} at ${get(exp.empresa || exp.company)}</p>
+                                    <p class="text-sm text-gray-600">${get(exp.fechas || exp.dates)} ${get(exp.lugar || exp.location) ? `| ${get(exp.lugar || exp.location)}` : ''}</p>
+                                    <ul class="list-disc list-inside ml-4 text-gray-700">
+                                        ${get(exp.descripcion || exp.description).split('\\n').filter(line => line.trim() !== '').map(line => `<li>${line.replace(/^\* ?/, '')}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>` : ''}
+
+                    ${getArr(profileData.educacion || profileData.education).length > 0 ? `
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-3">${get(profileSections.education)}</h4>
+                        <div class="space-y-2">
+                            ${getArr(profileData.educacion || profileData.education).map(edu => `
+                                <div>
+                                    <p class="font-medium text-gray-800">${get(edu.titulo || edu.title)}</p>
+                                    <p class="text-sm text-gray-600">${get(edu.institucion || edu.institution)} | ${get(edu.fechas || edu.dates)}</p>
+                                    ${get(edu.tesis || edu.thesis) ? `<p class="text-xs text-gray-500">Tesis: ${get(edu.tesis || edu.thesis)}</p>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>` : ''}
+
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-3">${get(profileSections.technicalSkills)}</h4>
+                        <ul class="list-disc list-inside text-gray-700 grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                            ${getArr(skills.tecnicas || skills.technical).map(skill => `<li>${get(skill)}</li>`).join('')}
+                        </ul>
+                    </div>
+
+                    ${getArr(skills.certificaciones || skills.certifications).length > 0 ? `
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-3">${get(profileSections.certifications)}</h4>
+                        <ul class="list-disc list-inside text-gray-700">
+                            ${getArr(skills.certificaciones || skills.certifications).map(cert => `<li>${get(cert)}</li>`).join('')}
+                        </ul>
+                    </div>` : ''}
+
+                    ${getArr(skills.logros || skills.achievements).length > 0 ? `
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-3">${get(profileSections.achievements)}</h4>
+                        <ul class="list-disc list-inside text-gray-700">
+                            ${getArr(skills.logros || skills.achievements).map(logro => `<li>${get(logro)}</li>`).join('')}
+                        </ul>
+                    </div>` : ''}
+
+                    ${skills.idiomas && Object.keys(skills.idiomas).length > 0 ? `
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-3">${get(profileSections.languages)}</h4>
+                        <ul class="list-disc list-inside text-gray-700">
+                            ${Object.entries(skills.idiomas).map(([lang, level]) => `<li>${get(lang)}: ${get(level)}</li>`).join('')}
+                        </ul>
+                    </div>` : ''}
+                </div>
+            `;
+            return html;
+        }
+
+        function generateCvHtml(cvData) {
+            // Ensure cvData is an object, even if empty
+            cvData = cvData || {}; 
+
+            const get = (val, def = '') => val || def;
+            const getArr = (arr) => arr || [];
+            const contact = cvData.contacto || cvData.contact || {};
+            const skills = cvData.habilidades || cvData.skills || {};
+            const profileSections = languageData[currentLanguage].profileSections || {}; // Ensure profileSections is defined
+
+            return `
+                <div style="font-family: 'Arial', sans-serif; line-height: 1.4; color: #333; font-size: 10.5pt; margin: 0; padding: 0; width: 100%; box-sizing: border-box;">
+                    <div style="text-align: center; margin-bottom: 12px; padding-bottom: 2px; border-bottom: 1px solid #333;">
+                        <div style="font-size: 14pt; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; display: block;">${get(cvData.nombre || cvData.name)}</div>
+                        <div style="font-size: 9.8pt; margin: 4px 0; display: block;">
+                            ${get(contact.correo || contact.email)} ${get(contact.telefono || contact.phone) ? `| ${get(contact.telefono || contact.phone)}` : ''} ${get(contact.linkedin) ? `| <a href="${get(contact.linkedin)}" target="_blank" style="color:#0000EE; text-decoration:underline;">${get(contact.linkedin)}</a>` : ''}
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 10px; page-break-inside: avoid;">
+                        <div style="font-size: 11.5pt; font-weight: bold; margin: 10px 0 2px 0; padding: 0 0 3px 5px; border-bottom: 1.5px solid #ddd; display: block;">${get(profileSections.summary)}</div>
+                        <div style="padding: 0 5px; text-align: justify; display: block;">${get(cvData.resumen || cvData.summary)}</div>
+                    </div>
+
+                    ${getArr(cvData.experiencia || cvData.experience).length > 0 ? `
+                    <div style="margin-bottom: 10px; page-break-inside: avoid;">
+                        <div style="font-size: 11.5pt; font-weight: bold; margin: 10px 0 2px 0; padding: 0 0 3px 5px; border-bottom: 1.5px solid #ddd; display: block;">${get(profileSections.experience)}</div>
+                        ${getArr(cvData.experiencia || cvData.experience).map(exp => `
+                            <div style="margin-bottom: 2px; page-break-inside: avoid;">
+                                <div><span style="font-weight: bold; display: inline;">${get(exp.empresa || exp.company)} - ${get(exp.titulo || exp.title)}</span> <span style="font-style: italic; font-size: 9.8pt; display: inline; margin-left: 10px;">${get(exp.fechas || exp.dates)}</span></div>
+                                <ul style="margin: 6px 0 2px 25px; padding: 0; list-style-type: disc;">${get(exp.descripcion || exp.description).split('\\n').map(l => `<li style="margin: 4px 0; padding: 0; font-size: 10.2pt;">${l.replace(/^\* ?/, '')}</li>`).join('')}</ul>
+                            </div>`).join('')}
+                    </div>` : ''}
+
+                    <div style="margin-bottom: 10px; page-break-inside: avoid;">
+                        <div style="font-size: 11.5pt; font-weight: bold; margin: 10px 0 2px 0; padding: 0 0 3px 5px; border-bottom: 1.5px solid #ddd; display: block;">${get(profileSections.technicalSkills)} y ${get(profileSections.certifications)}</div>
+                        <table style="width:100%; border-collapse: collapse;">
+                            <tr>
+                                <td style="width:50%; vertical-align:top; padding-right:10px;">
+                                    <h5 style="font-weight:bold; margin-bottom:5px;">${get(profileSections.technicalSkills)}</h5>
+                                    <ul style="margin: 6px 0 2px 25px; padding: 0; list-style-type: none;">
+                                        ${getArr(skills.tecnicas || skills.technical).map(s => `<li style="margin: 4px 0; padding: 0; font-size: 10.2pt;">${get(s)}</li>`).join('')}
+                                    </ul>
+                                </td>
+                                <td style="width:50%; vertical-align:top; padding-left:10px;">
+                                    <h5 style="font-weight:bold; margin-bottom:5px;">${get(profileSections.certifications)}</h5>
+                                    <ul style="margin: 6px 0 2px 25px; padding: 0; list-style-type: none;">
+                                        ${getArr(skills.certificaciones || skills.certifications).slice(0, 8).map(c => `<li style="margin: 4px 0; padding: 0; font-size: 10.2pt;">${get(c)}</li>`).join('')}
+                                    </ul>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    ${getArr(cvData.educacion || cvData.education).length > 0 ? `
+                    <div style="margin-bottom: 10px; page-break-inside: avoid;">
+                        <div style="font-size: 11.5pt; font-weight: bold; margin: 10px 0 2px 0; padding: 0 0 3px 5px; border-bottom: 1.5px solid #ddd; display: block;">${get(profileSections.education)}</div>
+                        ${getArr(cvData.educacion || cvData.education).map(edu => `
+                            <div style="margin-bottom: 7px; page-break-inside: avoid;">
+                                <span style="font-weight: bold; display: inline;">${get(edu.titulo || edu.title)}</span> <span style="display: inline; margin-left: 8px;">${get(edu.institucion || edu.institution)} | ${get(edu.fechas || edu.dates)}</span>
+                                ${get(edu.tesis || edu.thesis) ? `<p style="font-size: 0.75em; color: #666;">Tesis: ${get(edu.tesis || edu.thesis)}</p>` : ''}
+                            </div>`).join('')}
+                    </div>` : ''}
+
+                    ${skills.idiomas && Object.keys(skills.idiomas).length > 0 ? `
+                    <div style="margin-bottom: 10px; page-break-inside: avoid;">
+                        <div style="font-size: 11.5pt; font-weight: bold; margin: 10px 0 2px 0; padding: 0 0 3px 5px; border-bottom: 1.5px solid #ddd; display: block;">${get(profileSections.languages)}</div>
+                        <ul style="margin: 6px 0 2px 25px; padding: 0; list-style-type: none;">
+                            ${Object.entries(skills.idiomas).map(([lang, level]) => `<li>${get(lang)}: ${get(level)}</li>`).join('')}
+                        </ul>
+                    </div>` : ''}
+                </div>`;
+        }
+        
+        // Function for Word (.doc) download
+        function downloadCvAsWord(htmlContent, filename) {
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>CV</title></head><body>";
+            const footer = "</body></html>";
+            const sourceHTML = header + htmlContent + footer;
+            const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+            const fileDownload = document.createElement("a");
+            document.body.appendChild(fileDownload);
+            fileDownload.href = source;
+            fileDownload.download = filename;
+            fileDownload.click();
+            document.body.removeChild(fileDownload);
+        }
+
+        // --- PAGE LOAD AND AUTH STATE MANAGEMENT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    // Always show landing page first
+                    if (landingPage) landingPage.style.display = 'flex';
+                    if (authPage) authPage.style.display = 'none';
+                    if (appContainer) appContainer.style.display = 'none';
+
+                    // Update landing page for logged-in user
+                    const loggedInUserEmailSpan = document.getElementById('logged-in-user-email');
+                    if (loggedInUserEmailSpan) {
+                        loggedInUserEmailSpan.textContent = user.email;
+                    }
+                    const landingLoggedInMessage = document.getElementById('landing-logged-in-message');
+                    if (landingLoggedInMessage) {
+                        landingLoggedInMessage.classList.remove('hidden');
+                    }
+                    if (landingOptimizeCvBtn) landingOptimizeCvBtn.classList.add('hidden'); // Hide "Optimiza tu CV Ahora"
+                    if (landingLoginRegisterBtn) landingLoginRegisterBtn.classList.add('hidden');
+                    if (landingLoginRegisterBtnMobile) landingLoginRegisterBtnMobile.classList.add('hidden');
+                    if (landingStartFreeBtn) landingStartFreeBtn.classList.add('hidden'); // Hide "Empieza Gratis Ahora"
+
+                    // Add event listener for "Go to Dashboard" button
+                    const landingGoToDashboardBtn = document.getElementById('landing-go-to-dashboard-btn');
+                    if (landingGoToDashboardBtn) {
+                        landingGoToDashboardBtn.onclick = () => {
+                            if (landingPage) landingPage.style.display = 'none';
+                            if (appContainer) appContainer.style.display = 'flex';
+                            initializeMainApp(); // Initialize main app only when user clicks to enter
+                        };
+                    }
+
+                } else {
+                    userId = null;
+                    if (profileUnsubscribe) profileUnsubscribe();
+                    userProfile = null;
+                    
+                    if (landingPage) landingPage.style.display = 'flex';
+                    if (authPage) authPage.style.display = 'none';
+                    if (appContainer) appContainer.style.display = 'none';
+
+                    // Update landing page for logged-out user
+                    const landingLoggedInMessage = document.getElementById('landing-logged-in-message');
+                    if (landingLoggedInMessage) {
+                        landingLoggedInMessage.classList.add('hidden');
+                    }
+                    if (landingOptimizeCvBtn) landingOptimizeCvBtn.classList.remove('hidden'); // Show "Optimiza tu CV Ahora"
+                    if (landingLoginRegisterBtn) landingLoginRegisterBtn.classList.remove('hidden');
+                    if (landingLoginRegisterBtnMobile) landingLoginRegisterBtnMobile.classList.remove('hidden');
+                    if (landingStartFreeBtn) landingStartFreeBtn.classList.remove('hidden'); // Show "Empieza Gratis Ahora"
+                }
+                updateUIForLanguage(); // Ensure UI is updated on auth state change
+            });
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    if (sidebar) sidebar.classList.toggle('-translate-x-full');
+                });
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const sectionId = link.dataset.section;
+                    showSection(sectionId);
+                    if (window.innerWidth < 1024) {
+                        if (sidebar) sidebar.classList.add('-translate-x-full');
+                    }
+                });
+            });
+            
+            if (cvModal) {
+                cvModal.addEventListener('click', (e) => {
+                    if (e.target === cvModal || e.target.closest('.close-modal-btn')) {
+                        cvModal.classList.add('hidden');
+                    }
+                });
+            }
+
+            updateUIForLanguage(); // Initial UI update on page load
+        });
+    </script>
+
+</body>
+</html>
