@@ -1509,8 +1509,8 @@
                 - WORK RESPONSIBILITIES (for each experience) Adjusted to the job offer:
                 Forbidden: Generic descriptions.
                 Mandatory:
-                Use first-person singular past tense verbs (e.g., "Diseñé", "Desarrollé", "Vendí") for the responsibilities in the generated CV.
-                [Action Verb] [job keyword] in [context] (e.g., "Optimicé flujos ETL con Python reduciendo tiempos 40%")
+                Use first-person singular past tense verbs (e.g., "I designed", "I developed", "I sold") for the responsibilities in the generated CV.
+                [Action Verb] [job keyword] in [context] (e.g., "I optimized ETL flows with Python reducing times by 40%")
                 Maximum 3 bullet points per position
                 Use percentages/values in achievements
 
@@ -1523,14 +1523,14 @@
                 - KEY ACHIEVEMENTS:
                 Forbidden: Do not adjust the achievement to the job offer.
                 Mandatory:
-                Adjust key achievements towards the job offer, enter percentages. (e.g., "Gestioné la mejora de un 80% en las ordenes pendientes de ejecucion de material, ayudando en...")
+                Adjust key achievements towards the job offer, enter percentages. (e.g., "I managed an 80% improvement in pending material execution orders, helping to...")
 
                 Important: do not round default values. Calculate the percentage truly based on what you detect, and also do not use "**" for bolding, we do not need to bold text.
                 VERY IMPORTANT: DO NOT ADD MORE YEARS OF EXPERIENCE THAN THE USER ALREADY HAS IN THEIR PROFILE. ONLY ADJUST EXISTING INFORMATION TO THE JOB OFFER.
 
                 2. Decision making:
                 - If compatibility >= 70%:
-                    Generate a CV in JSON format with this exact structure, keeping in mind that neither education nor certifications are removed from the resume or their information reduced, responsibilities of experience, do not change the original names of the work experiences, nor reduce them, use all of them but update their sub-functions to match the job offer, as well as the professional profile, in technical skills give a brief overview of what they serve and the level such as (Power Platform (Avanzado)) in certifications do not forget (the year) but ten en cuenta que las habilidades tecnicas y las certificaciones tecnicas deben ser las mas acordes para la vacante segun la historia laboral del candidato, SIEMPRE PRIORIZA QUE SEA COMPATIBLE CON LA VACANTE, priorizamos siempre el ATS:
+                    Generate a CV in JSON format with this exact structure, keeping in mind that neither education nor certifications are removed from the resume or their information reduced, responsibilities of experience, do not change the original names of the work experiences, nor reduce them, use all of them but update their sub-functions to match the job offer, as well as the professional profile, in technical skills give a brief overview of what they serve and the level such as (Power Platform (Avanzado)) in certifications do not forget (the year) but keep in mind that technical skills and certifications must be the most appropriate for the job offer according to the candidate's work history. ALWAYS PRIORITIZE THAT IT IS COMPATIBLE WITH THE JOB OFFER, we always prioritize the ATS:
                     {
                         "cv_final": {
                             "name": "Full Name",
@@ -1547,21 +1547,21 @@
                     Generate a CV in JSON format with this exact structure... (similar to above) and Generate improvement recommendations:
                     {
                         "recomendaciones": {
-                            "habilidades_clave": [ "Habilidad específica requerida en la vacante" ],
-                            "certificaciones": [ "Certificación con mayor demanda en el campo (máx. 2)" ],
+                            "habilidades_clave": [ "specific skill required for the vacancy" ],
+                            "certificaciones": [ "highest demand in the field (max. 2)" ],
                             "cursos_recomendados": [
-                                { "nombre": "Nombre del Curso", "entidad": "Entidad", "url": "URL del curso" }
+                                { "nombre": "Course Name", "entidad": "entity", "url": "real URL of the course" }
                             ],
-                            "tiempo_estimado": "X-Y meses basado en brechas",
+                            "tiempo_estimado": "X-Y months based on gaps",
                             "recursos_gratuitos": [
-                                { "nombre": "Nombre recurso", "url": "enlace", "tipo": "video/artículo/curso" }
+                                { "nombre": "resource name", "url": "link", "tipo": "video/article/course" }
                             ],
-                            "proyectos_recomendados": [ "Tipo de proyecto para ganar experiencia práctica" ],
+                            "proyectos_recomendados": [ "project type to gain practical experience" ],
                             "vacantes_sugeridas_perfil_actual": [
-                                { "rol": "Rol sugerido basado en perfil", "descripcion_breve": "Breve descripción", "portales": ["Portal1", "Portal2"] }
+                                { "rol": "suggested role based on profile", "descripcion_breve": "brief description", "portales": ["Portal1", "Portal2"] }
                             ]
                         },
-                        "cv_final": { /* ...misma estructura de cv_final ... */ }
+                        "cv_final": { /* ...same structure as cv_final ... */ }
                     }
 
                 Ensure that **all keys** in the JSON are double-quoted, por ejemplo: \`"analisis": { ... }\`.
@@ -1569,18 +1569,18 @@
                 3. FINAL Output Format (MANDATORY):
                 {
                     "analisis": {
-                        "nivelAjuste": "El porcentaje de ajuste que se tuvo que hacer a la hoja de vida para que cumpliera con la vacante debes entregarme un porcentaje de 0 a 100",
-                        "experiencia_Dest": "Es la experiencia destacada o que llamo la atencion para la compatibilidad",
-                        "HabilidadesClave":"las habilidades que mas destacaron en el analisis",
-                        "Logros_rele": "Logros relevantes para la vacante",
-                        "nombreVACANTE": "Nombre de la vacante",
-                        "porcentaje_compatibilidad": "El porcentaje de compatibilidad que te de con el analisis del candidato vs vacante ",
+                        "nivelAjuste": "the percentage of adjustment that had to be made to the resume to meet the job offer requirements, you must give me a percentage from 0 to 100",
+                        "experiencia_Dest": "Is the highlighted experience or what caught attention for compatibility",
+                        "HabilidadesClave":"the skills that stood out most in the analysis",
+                        "Logros_rele": "Relevant achievements for the vacancy",
+                        "nombreVACANTE": "Job title",
+                        "porcentaje_compatibilidad": "The compatibility percentage of the analysis with the vacancy",
                         "es_compatible": false,
-                        "habilidades_faltantes": ["Habilidad 1", "Habilidad 2"],
-                        "experiencia_faltante": "X años en [área]",
-                        "consejos": "Un texto de consejos profesionales por si hay una entrevista",
-                        "contacto_reclutador": "contacto del reclutador",
-                        "puntos_fuertes": ["Punto fuerte 1", "Punto fuerte 2"]
+                        "habilidades_faltantes": ["skill 1", "skill 2"],
+                        "experiencia_faltante": "X years in [area]",
+                        "consejos": "a text of professional advice for an interview",
+                        "contacto_reclutador": "recruiter contact",
+                        "puntos_fuertes": ["Strong point 1", "Strong point2"]
                     },
                     "output": {}
                 }
@@ -2506,4 +2506,5 @@
 
 </body>
 </html>
+
 
