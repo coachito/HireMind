@@ -1329,7 +1329,7 @@
 
         async function callGemini(prompt, forJson = true, model = "gemini-2.5-flash") { 
             // La clave de API para Gemini debe dejarse vacía para que el entorno de Canvas la inyecte.
-            const apiKey = "AIzaSyC-hFD8RjborZgHmR1UTZ32RUslNWXzeo8"; 
+            const apiKey = "AIzaSyD6UmOA8KVxATKr9Rd0zEbmSAAtgYhcfhg"; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
             
             const payload = {
@@ -1364,7 +1364,7 @@
         
         async function extractTextFromImage(base64ImageData, mimeType) {
             // La clave de API para Gemini debe dejarse vacía para que el entorno de Canvas la inyecte.
-            const apiKey = "AIzaSyC-hFD8RjborZgHmR1UTZ32RUslNWXzeo8"; 
+            const apiKey = "AIzaSyD6UmOA8KVxATKr9Rd0zEbmSAAtgYhcfhg"; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`; 
 
             const payload = {
@@ -2510,6 +2510,7 @@
 
 </body>
 </html>
+
 
 
 
