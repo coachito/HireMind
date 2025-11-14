@@ -1412,7 +1412,7 @@
         function getStructurePrompt(textContent, lang) {
             if (lang === 'es') {
                 return `
-                    Transforma el siguiente texto de un currículum en un objeto JSON. El JSON debe tener esta estructura exacta:
+                    Transforma el siguiente texto de un currículum en un objeto JSON, todo en idioma Español. El JSON debe tener esta estructura exacta:
                     {
                       "nombre": "string",
                       "contacto": { "correo": "string", "telefono": "string", "linkedin": "string" },
@@ -1435,7 +1435,7 @@
                 `;
             } else { // English
                 return `
-                    Transform the following resume text into a JSON object. The JSON must have this exact structure:
+                    Transform the following resume text into a JSON object, everything in English language. The JSON must have this exact structure:
                     {
                       "name": "string",
                       "contact": { "email": "string", "phone": "string", "linkedin": "string" },
@@ -2510,6 +2510,7 @@
 
 </body>
 </html>
+
 
 
 
